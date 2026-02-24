@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class intake extends SubsystemBase {
-
+//please review code it is very ai sai this is for you 
     // 🔴 CHANGE THESE TO YOUR REAL CAN IDS
     private static final int PIVOT_MOTOR_ID = 22;
     private static final int ROLLER_MOTOR_ID = 31;
