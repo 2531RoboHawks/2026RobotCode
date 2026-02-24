@@ -1,7 +1,7 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.controls.PositionDutyCycle;
+import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -9,78 +9,57 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class intake extends SubsystemBase {
 
-    // 🔴 CHANGE THESE TO YOUR REAL CAN IDS
     private static final int PIVOT_MOTOR_ID = 22;
     private static final int ROLLER_MOTOR_ID = 31;
 
-    private TalonFX pivotMotor = new TalonFX(PIVOT_MOTOR_ID);
-    private TalonFX rollerMotor = new TalonFX(ROLLER_MOTOR_ID);
+    private final TalonFX pivotMotor = new TalonFX(PIVOT_MOTOR_ID);
+    private final TalonFX rollerMotor = new TalonFX(ROLLER_MOTOR_ID);
 
-    // SETPOINTS
-    // ZERO = INTAKE UP
-    private static final double PIVOT_UP_POSITION = 0.0;
-    private static final double PIVOT_DOWN_POSITION = 5.0; // 🔧 tune this later
+    private static final double UP_POSITION = 0;
+    private static final double DOWN_POSITION = 2;
 
-    private PositionDutyCycle positionRequest = new PositionDutyCycle(0);
+    private final MotionMagicDutyCycle motionMagic =
+        new MotionMagicDutyCycle(0).withSlot(0);
 
-    // 🔴 CONSTRUCTOR
     public intake() {
 
         TalonFXConfiguration config = new TalonFXConfiguration();
 
-        // PID
-        config.Slot0.kP = 2.0;
-        config.Slot0.kI = 0.0;
-        config.Slot0.kD = 0.1;
+        config.MotionMagic.MotionMagicCruiseVelocity = 20;
+        config.MotionMagic.MotionMagicAcceleration = 40;
 
-        // 🛑 SOFT LIMITS (UP = 0)
-        config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-        config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = 6.0;
-        // cannot go too far DOWN
-
-        config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-        config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = -0.2;
-        // cannot go above UP
-
-        // 🛡️ CURRENT LIMIT
-        config.CurrentLimits.SupplyCurrentLimitEnable = true;
-        config.CurrentLimits.SupplyCurrentLimit = 35;
+        config.Slot0.kP = 0.25;
+        config.Slot0.kI = 0;
+        config.Slot0.kD = 0;
 
         pivotMotor.getConfigurator().apply(config);
 
-        // Flip if it moves wrong direction
-
-        //IMPORTANT CHECK CHAT FOR THIS
-
-        // ZERO encoder at startup
         pivotMotor.setPosition(0);
     }
 
-    // 🔵 GO TO UP POSITION
+    // Y button — drives to UP position, then re-zeros once it arrives
     public Command pivotUp() {
-        return runOnce(() ->
-            pivotMotor.setControl(positionRequest.withPosition(PIVOT_UP_POSITION))
-        );
+        return run(() ->
+            pivotMotor.setControl(motionMagic.withPosition(UP_POSITION))
+        ).until(() ->
+            Math.abs(pivotMotor.getPosition().getValueAsDouble()) < 0.3
+        ).andThen(runOnce(() ->
+            pivotMotor.setPosition(0)
+        ));
     }
 
-    // 🔵 GO TO DOWN POSITION
+    // X button — go to DOWN position
     public Command pivotDown() {
         return runOnce(() ->
-            pivotMotor.setControl(positionRequest.withPosition(PIVOT_DOWN_POSITION))
+            pivotMotor.setControl(motionMagic.withPosition(DOWN_POSITION))
         );
     }
 
-    // 🟢 ROLLER RUNS WHILE HELD
+    // Left trigger — spin roller while held, stop on release
     public Command runRoller() {
         return runEnd(
             () -> rollerMotor.set(-1.0),
             () -> rollerMotor.set(0.0)
         );
-    }
-
-    @Override
-    public void periodic() {
-        // 🔬 Used to find your real DOWN value
-        System.out.println(pivotMotor.getPosition().getValueAsDouble());
     }
 }
