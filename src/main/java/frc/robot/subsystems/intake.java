@@ -1,65 +1,67 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-
-import edu.wpi.first.wpilibj2.command.Command;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class intake extends SubsystemBase {
 
-    private static final int PIVOT_MOTOR_ID = 22;
-    private static final int ROLLER_MOTOR_ID = 31;
-
-    private final TalonFX pivotMotor = new TalonFX(PIVOT_MOTOR_ID);
-    private final TalonFX rollerMotor = new TalonFX(ROLLER_MOTOR_ID);
-
-    private static final double UP_POSITION = 0;
-    private static final double DOWN_POSITION = 2;
-
-    private final MotionMagicDutyCycle motionMagic =
-        new MotionMagicDutyCycle(0).withSlot(0);
+    private final TalonFX pivotMotor = new TalonFX(22);
+    private final TalonFX rollerMotor = new TalonFX(31);
+    private final PositionVoltage positionRequest = new PositionVoltage(0);
 
     public intake() {
-
         TalonFXConfiguration config = new TalonFXConfiguration();
+        config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
-        config.MotionMagic.MotionMagicCruiseVelocity = 20;
-        config.MotionMagic.MotionMagicAcceleration = 40;
-
-        config.Slot0.kP = 0.25;
-        config.Slot0.kI = 0;
-        config.Slot0.kD = 0;
+        // PID for holding position — increase kP if it's not holding strong enough
+        Slot0Configs slot0 = config.Slot0;
+        slot0.kP = 4.0;  // ← increase this if still not holding
+        slot0.kD = 0.1;
 
         pivotMotor.getConfigurator().apply(config);
-
-        pivotMotor.setPosition(0);
     }
 
-    // Y button — drives to UP position, then re-zeros once it arrives
-    public Command pivotUp() {
-        return run(() ->
-            pivotMotor.setControl(motionMagic.withPosition(UP_POSITION))
-        ).until(() ->
-            Math.abs(pivotMotor.getPosition().getValueAsDouble()) < 0.3
-        ).andThen(runOnce(() ->
-            pivotMotor.setPosition(0)
-        ));
+    @Override
+    public void periodic() {
+        SmartDashboard.putNumber("Pivot Position", getPivotPosition());
     }
 
-    // X button — go to DOWN position
-    public Command pivotDown() {
-        return runOnce(() ->
-            pivotMotor.setControl(motionMagic.withPosition(DOWN_POSITION))
-        );
+    public void pivotToUp() {
+        pivotMotor.set(-0.15);
     }
 
-    // Left trigger — spin roller while held, stop on release
-    public Command runRoller() {
-        return runEnd(
-            () -> rollerMotor.set(-1.0),
-            () -> rollerMotor.set(0.0)
-        );
+    public void pivotToDown() {
+        pivotMotor.set(0.15);
+    }
+
+    public void stopPivot() {
+        pivotMotor.set(0);
+    }
+
+    public void lockPosition() {
+        // Grabs current position and actively holds it
+        double currentPosition = pivotMotor.getPosition().getValueAsDouble();
+        pivotMotor.setControl(positionRequest.withPosition(currentPosition));
+    }
+
+    public void unlockPosition() {
+        pivotMotor.set(0); // back to coast/free
+    }
+
+    public void runRollerMotor() {
+        rollerMotor.set(-1);
+    }
+
+    public void stopRoller() {
+        rollerMotor.set(0);
+    }
+
+    public double getPivotPosition() {
+        return pivotMotor.getPosition().getValueAsDouble();
     }
 }
