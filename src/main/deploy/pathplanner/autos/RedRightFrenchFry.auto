@@ -30,22 +30,9 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "RHumanToScore"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "IntakeUpSai"
-                }
-              }
-            ]
+            "pathName": "RHumanToScore"
           }
         },
         {
@@ -62,6 +49,25 @@
                 "type": "named",
                 "data": {
                   "name": "ShootSai"
+                }
+              },
+              {
+                "type": "parallel",
+                "data": {
+                  "commands": [
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "IntakeUpSai"
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "ShootSai"
+                      }
+                    }
+                  ]
                 }
               }
             ]

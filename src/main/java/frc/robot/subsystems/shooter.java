@@ -24,7 +24,7 @@ public class shooter extends SubsystemBase {
 
         // Velocity PID — tune kP if wheel bogs down under load
         Slot0Configs slot0 = config.Slot0;
-        slot0.kP = 0.55;  // increase if wheel slows down when ball hits
+        slot0.kP = 0.6;  // increase if wheel slows down when ball hits
         slot0.kV = 0.10; // feedforward — helps reach target speed faster
 
         shooterMotor.getConfigurator().apply(config);

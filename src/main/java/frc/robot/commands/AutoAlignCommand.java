@@ -11,23 +11,47 @@ import frc.robot.generated.TunerConstants;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Drives toward the Hub AprilTag using Limelight tx/ty.
- * Ends when the robot is centered (tx ≈ 0) and at scoring distance (ty ≈ TARGET_TY).
- * Has a 3-second timeout failsafe.
+ * Drives toward an AprilTag using Limelight tx/ty.
+ * Each tag has its own TX and TY target.
+ * To add more tags, just add entries to TAG_TARGETS below.
  *
- * Use: "AutoAlign" in PathPlanner.
+ * Use: "AutoAlignSai" in PathPlanner.
  */
 public class AutoAlignCommand extends Command {
 
-    // ── Tune these ────────────────────────────────────────────────────────────
-    private static final double TARGET_TY  = 17.0;  // ← read ty at ideal scoring spot, paste here
-    private static final double DRIVE_KP   = 0.09;  // forward/back gain
-    private static final double STRAFE_KP  = 0.09;  // left/right gain
-    private static final double TX_TOLERANCE = 2.0; // degrees — centered enough
-    private static final double TY_TOLERANCE = 2.0; // degrees — close enough
-    private static final int[]  HUB_TAG_IDS = { 10, 26 }; // ← your Hub tag IDs
-    // ───────────────────────────────────────────────────────────────────────── 
+    // ── Gains ─────────────────────────────────────────────────────────────────
+    private static final double DRIVE_KP     = 0.09;
+    private static final double STRAFE_KP    = 0.09;
+    private static final double TX_TOLERANCE = 2.0;
+    private static final double TY_TOLERANCE = 2.0;
+
+    // Default targets used if a tag isn't listed below
+    private static final double DEFAULT_TY = 17.0;
+    private static final double DEFAULT_TX = 0.0;
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── ADD/EDIT TAGS HERE ────────────────────────────────────────────────────
+    // Format: TAG_TARGETS.put(tagID, new double[]{TX, TY});
+    // TX = left/right offset from tag center (0 = dead center, + = right, - = left)
+    // TY = how far forward to drive (higher = closer to tag)
+    public static final Map<Integer, double[]> TAG_TARGETS = new HashMap<>();
+    static {
+        TAG_TARGETS.put(10, new double[]{ 0.0, 17.0 }); // { TX, TY }
+        TAG_TARGETS.put(26, new double[]{ 0.0, 17.0 });
+        TAG_TARGETS.put(13, new double[]{ -5.0, 8.0 });
+        TAG_TARGETS.put(29, new double[]{ -5.0, 8.0 });
+
+        // Add more tags here — just uncomment and fill in values:
+        // TAG_TARGETS.put(7,  new double[]{ 0.0, 15.0 });
+        // TAG_TARGETS.put(8,  new double[]{ 0.0, 15.0 });
+        // TAG_TARGETS.put(11, new double[]{ 1.5, 16.0 });
+        // TAG_TARGETS.put(12, new double[]{ 0.0, 17.0 });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     private final CommandSwerveDrivetrain drivetrain;
     private final double maxSpeed;
@@ -45,11 +69,19 @@ public class AutoAlignCommand extends Command {
         addRequirements(drivetrain);
     }
 
+    public static double getTargetTYStatic(int tagID) {
+    return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
+}
+
+public static double getTargetTXStatic(int tagID) {
+    return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
+}   
+
     @Override
     public void execute() {
         int tagID = getVisibleTagID();
 
-        if (!isHubTag(tagID)) {
+        if (!isValidTag(tagID)) {
             drivetrain.setControl(brake);
             return;
         }
@@ -59,22 +91,22 @@ public class AutoAlignCommand extends Command {
 
         drivetrain.setControl(
             alignRequest
-                .withVelocityX((ty - TARGET_TY) * -DRIVE_KP * maxSpeed)
-                .withVelocityY(0)
-                .withRotationalRate(tx * -STRAFE_KP)
+                .withVelocityX((ty - getTargetTY(tagID)) * -DRIVE_KP * maxSpeed)
+                .withVelocityY((tx - getTargetTX(tagID)) * -STRAFE_KP * maxSpeed)
+                .withRotationalRate(0)
         );
     }
 
     @Override
     public boolean isFinished() {
         int tagID = getVisibleTagID();
-        if (!isHubTag(tagID)) return false;
+        if (!isValidTag(tagID)) return false;
 
         double tx = LimelightHelpers.getTX("limelight");
         double ty = LimelightHelpers.getTY("limelight");
 
-        return Math.abs(tx) < TX_TOLERANCE
-            && Math.abs(ty - TARGET_TY) < TY_TOLERANCE;
+        return Math.abs(tx - getTargetTX(tagID)) < TX_TOLERANCE
+            && Math.abs(ty - getTargetTY(tagID)) < TY_TOLERANCE;
     }
 
     @Override
@@ -82,17 +114,24 @@ public class AutoAlignCommand extends Command {
         drivetrain.setControl(brake);
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private double getTargetTX(int tagID) {
+        return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
+    }
+
+    private double getTargetTY(int tagID) {
+        return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
+    }
+
+    private boolean isValidTag(int tagID) {
+        return TAG_TARGETS.containsKey(tagID);
+    }
+
     private int getVisibleTagID() {
         return (int) NetworkTableInstance.getDefault()
             .getTable("limelight")
             .getEntry("tid")
             .getDouble(-1);
-    }
-
-    private boolean isHubTag(int id) {
-        for (int hubID : HUB_TAG_IDS) {
-            if (id == hubID) return true;
-        }
-        return false;
     }
 }

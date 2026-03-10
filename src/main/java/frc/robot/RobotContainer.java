@@ -166,24 +166,23 @@ NamedCommands.registerCommand("Wait4sSai", Commands.waitSeconds(4.0));
             //})
         //);
 
-        // RIGHT BUMPER = LIMELIGHT ALIGN (tags 10 and 26 only)
-        driverController.rightBumper().whileTrue(
-            drivetrain.applyRequest(() -> {
-                int tagID = (int) NetworkTableInstance.getDefault()
-                    .getTable("limelight")
-                    .getEntry("tid")
-                    .getDouble(-1);
+driverController.rightBumper().whileTrue(
+    drivetrain.applyRequest(() -> {
+        int tagID = (int) NetworkTableInstance.getDefault()
+            .getTable("limelight")
+            .getEntry("tid")
+            .getDouble(-1);
 
-                if (tagID != 10 && tagID != 26) {
-                    return brake;
-                }
+        if (!AutoAlignCommand.TAG_TARGETS.containsKey(tagID)) {
+            return brake;
+        }
 
-                return limelightDrive
-                    .withVelocityX((LimelightHelpers.getTY("limelight") - 16.0) * -0.15)
-                    .withVelocityY(0)
-                    .withRotationalRate(LimelightHelpers.getTX("limelight") * -0.15);
-            })
-        );
+        return limelightDrive
+            .withVelocityX((LimelightHelpers.getTY("limelight") - AutoAlignCommand.getTargetTYStatic(tagID)) * -0.15)
+            .withVelocityY((LimelightHelpers.getTX("limelight") - AutoAlignCommand.getTargetTXStatic(tagID)) * -0.15)
+            .withRotationalRate(0);
+    })
+);
 
         secondController.leftBumper()
         .onTrue(new InstantCommand(() -> intakeSubsystem.lockPosition(), intakeSubsystem))
