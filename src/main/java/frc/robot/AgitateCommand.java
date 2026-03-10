@@ -1,5 +1,5 @@
 package frc.robot;
-//dissabled 
+//dissabled - not used currently, only used when we have position commands on intake.java
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.subsystems.intake;
