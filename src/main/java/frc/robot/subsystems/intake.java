@@ -31,36 +31,44 @@ public class intake extends SubsystemBase {
         SmartDashboard.putNumber("Pivot Position", getPivotPosition());
     }
 
+    // Runs the pivot motor at -15% to move the intake arm upward
     public void pivotToUp() {
         pivotMotor.set(-0.15);
     }
 
+    // Runs the pivot motor at +15% to move the intake arm downward
     public void pivotToDown() {
         pivotMotor.set(0.15);
     }
 
+    // Stops the pivot motor (arm stays in place due to coast mode, may drift)
     public void stopPivot() {
         pivotMotor.set(0);
     }
 
+    // Locks the pivot arm at its current position using closed-loop PID control
     public void lockPosition() {
-        // Grabs current position and actively holds it
         double currentPosition = pivotMotor.getPosition().getValueAsDouble();
         pivotMotor.setControl(positionRequest.withPosition(currentPosition));
     }
 
+    // Releases position hold, returning the pivot motor to open-loop (coast/free)
     public void unlockPosition() {
-        pivotMotor.set(0); // back to coast/free
+        pivotMotor.set(0);
     }
 
+    // Spins the intake roller at full speed (reverse direction) to pull game pieces in
+    // NOTE: not fully certain if -1 is intake or outtake direction, depends on motor orientation
     public void runRollerMotor() {
         rollerMotor.set(-1);
     }
 
+    // Stops the intake roller motor
     public void stopRoller() {
         rollerMotor.set(0);
     }
 
+    // Returns the current pivot motor encoder position (in rotations)
     public double getPivotPosition() {
         return pivotMotor.getPosition().getValueAsDouble();
     }
