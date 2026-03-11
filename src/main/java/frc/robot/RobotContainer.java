@@ -184,7 +184,7 @@ driverController.rightBumper().whileTrue(
     })
 );
 
-        secondController.leftBumper()
+        driverController.leftBumper()
         .onTrue(new InstantCommand(() -> intakeSubsystem.lockPosition(), intakeSubsystem))
         .onFalse(new InstantCommand(() -> intakeSubsystem.unlockPosition(), intakeSubsystem));
 
