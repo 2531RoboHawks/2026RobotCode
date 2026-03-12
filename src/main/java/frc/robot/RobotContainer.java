@@ -175,6 +175,24 @@ driverController.rightBumper().whileTrue(
     })
 );
 
+driverController.rightBumper().whileTrue(
+    drivetrain.applyRequest(() -> {
+        int tagID = (int) NetworkTableInstance.getDefault()
+            .getTable("limelight-b")
+            .getEntry("tid")
+            .getDouble(-1);
+
+        if (!AutoAlignCommand.TAG_TARGETS.containsKey(tagID)) {
+            return brake;
+        }
+
+        return limelightDrive
+            .withVelocityX((LimelightHelpers.getTY("limelight") - AutoAlignCommand.getTargetTYStatic(tagID)) * -0.0)
+            .withVelocityY((LimelightHelpers.getTX("limelight") - AutoAlignCommand.getTargetTXStatic(tagID)) * -0.0)
+            .withRotationalRate(0);
+    })
+);
+
         driverController.leftBumper()
         .onTrue(new InstantCommand(() -> intakeSubsystem.lockPosition(), intakeSubsystem))
         .onFalse(new InstantCommand(() -> intakeSubsystem.unlockPosition(), intakeSubsystem));
