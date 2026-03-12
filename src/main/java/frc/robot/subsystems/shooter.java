@@ -18,8 +18,9 @@ public class shooter extends SubsystemBase {
 
     public shooter() {
         TalonFXConfiguration config = new TalonFXConfiguration();
-
-        config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        //Mode of the motor - Coast (Motor moves even when no current is running) - Brake (Motor will stop when no current is running. May cause brownouts)
+        config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        //Ramp Up period for the shootermotor - Changable based on our needs
         config.OpenLoopRamps.DutyCycleOpenLoopRampPeriod = 2.0;
 
         // Velocity PID — tune kP if wheel bogs down under load
