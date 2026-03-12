@@ -7,12 +7,11 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.Constants;
 
 public class intake extends SubsystemBase {
-    //Motor ID for this action
-    private final TalonFX pivotMotor = new TalonFX(22);
-    //Motor ID for this action
-    private final TalonFX rollerMotor = new TalonFX(31);
+    private final TalonFX pivotMotor = new TalonFX(Constants.Intake.kPivotMotorID);
+    private final TalonFX rollerMotor = new TalonFX(Constants.Intake.kRollerMotorID);
     private final PositionVoltage positionRequest = new PositionVoltage(0);
 
     public intake() {
@@ -21,8 +20,8 @@ public class intake extends SubsystemBase {
 
         // PID for holding position — increase kP if it's not holding strong enough
         Slot0Configs slot0 = config.Slot0;
-        slot0.kP = 4.0;  // <- increase this if still not holding
-        slot0.kD = 0.1;
+        slot0.kP = Constants.Intake.kPivotP;
+        slot0.kD = Constants.Intake.kPivotD;
 
         pivotMotor.getConfigurator().apply(config);
     }
@@ -32,14 +31,14 @@ public class intake extends SubsystemBase {
         SmartDashboard.putNumber("Pivot Position", getPivotPosition());
     }
 
-    // Runs the pivot motor at -15% to move the intake arm upward
+    // Runs the pivot motor to move the intake arm upward
     public void pivotToUp() {
-        pivotMotor.set(-0.15);
+        pivotMotor.set(Constants.Intake.kPivotUpSpeed);
     }
 
-    // Runs the pivot motor at +15% to move the intake arm downward
+    // Runs the pivot motor to move the intake arm downward
     public void pivotToDown() {
-        pivotMotor.set(0.15);
+        pivotMotor.set(Constants.Intake.kPivotDownSpeed);
     }
 
     // Stops the pivot motor (arm stays in place due to coast mode, may drift)
@@ -58,10 +57,9 @@ public class intake extends SubsystemBase {
         pivotMotor.set(0);
     }
 
-    // Spins the intake roller at full speed (reverse direction) to pull game pieces in
-    // NOTE: not fully certain if -1 is intake or outtake direction, depends on motor orientation
+    // Spins the intake roller to pull game pieces in
     public void runRollerMotor() {
-        rollerMotor.set(-1);
+        rollerMotor.set(Constants.Intake.kRollerSpeed);
     }
 
     // Stops the intake roller motor

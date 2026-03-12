@@ -9,8 +9,6 @@ public class AgitateCommand extends Command {
     private final intake intake;
     private final Timer timer = new Timer();
     private boolean goingDown = true;
-    private static final double SWITCH_INTERVAL = 0.3; // seconds between direction changes
-
     public AgitateCommand(intake intake) {
         this.intake = intake;
         addRequirements(intake);
@@ -24,8 +22,8 @@ public class AgitateCommand extends Command {
 
     @Override
     public void execute() {
-        if (timer.advanceIfElapsed(SWITCH_INTERVAL)) {
-            goingDown = !goingDown; // flip direction every 0.3 seconds
+        if (timer.advanceIfElapsed(Constants.Agitate.kSwitchInterval)) {
+            goingDown = !goingDown;
         }
 
         if (goingDown) {

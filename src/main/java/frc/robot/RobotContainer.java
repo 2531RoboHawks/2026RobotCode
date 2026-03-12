@@ -44,8 +44,8 @@ public class RobotContainer {
     private double MaxSpeed = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate).in(RadiansPerSecond);
 
-    private final CommandXboxController driverController = new CommandXboxController(0);
-    private final CommandXboxController secondController = new CommandXboxController(1);
+    private final CommandXboxController driverController = new CommandXboxController(Constants.OI.kDriverControllerPort);
+    private final CommandXboxController secondController = new CommandXboxController(Constants.OI.kSecondControllerPort);
 
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
         .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
@@ -71,7 +71,7 @@ public class RobotContainer {
                 () -> intakeSubsystem.pivotToDown(),
                 () -> intakeSubsystem.stopPivot(),
                 intakeSubsystem
-            ).withTimeout(0.2)
+            ).withTimeout(Constants.Timeouts.kIntakeDownTimeout)
         );
 
         NamedCommands.registerCommand("IntakeUpSai",
@@ -79,7 +79,7 @@ public class RobotContainer {
                 () -> intakeSubsystem.pivotToUp(),
                 () -> intakeSubsystem.stopPivot(),
                 intakeSubsystem
-            ).withTimeout(0.75)
+            ).withTimeout(Constants.Timeouts.kIntakeUpTimeout)
         );
 
         NamedCommands.registerCommand("RunIntakeSai",
@@ -88,7 +88,7 @@ public class RobotContainer {
                     () -> intakeSubsystem.runRollerMotor(),
                     () -> {},
                     intakeSubsystem
-                ).withTimeout(0.5),
+                ).withTimeout(Constants.Timeouts.kRunIntakePhase1Timeout),
                 new StartEndCommand(
                     () -> {
                         intakeSubsystem.lockPosition();
@@ -99,15 +99,15 @@ public class RobotContainer {
                         intakeSubsystem.stopRoller();
                     },
                     intakeSubsystem
-                ).withTimeout(5.5)
+                ).withTimeout(Constants.Timeouts.kRunIntakePhase2Timeout)
             )
         );
 
         NamedCommands.registerCommand("SpinShooterSai",
-            new SpinShooterCommand(shooterSubsystem).withTimeout(1.5));
+            new SpinShooterCommand(shooterSubsystem).withTimeout(Constants.Timeouts.kSpinShooterTimeout));
 
         NamedCommands.registerCommand("FeedBallSai",
-            new FeedBallCommand(sorterSubsystem, feederSubsystem).withTimeout(1.0));
+            new FeedBallCommand(sorterSubsystem, feederSubsystem).withTimeout(Constants.Timeouts.kFeedBallTimeout));
 
         NamedCommands.registerCommand("ShootSai",
             new SequentialCommandGroup(
@@ -115,7 +115,7 @@ public class RobotContainer {
                     () -> shooterSubsystem.runShooterMotor(),
                     () -> {},
                     shooterSubsystem
-                ).withTimeout(1.5),
+                ).withTimeout(Constants.Timeouts.kShootSpinUpTimeout),
                 new StartEndCommand(
                     () -> {
                         sorterSubsystem.runSorterMotor();
@@ -128,12 +128,12 @@ public class RobotContainer {
                         shooterSubsystem.stopShooter();
                     },
                     sorterSubsystem, feederSubsystem, shooterSubsystem
-                ).withTimeout(7)
+                ).withTimeout(Constants.Timeouts.kShootFeedTimeout)
             )
         );
 
         NamedCommands.registerCommand("AutoAlignSai",
-            new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(2.5));
+            new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(Constants.Timeouts.kAutoAlignTimeout));
 
         NamedCommands.registerCommand("Wait1sSai", Commands.waitSeconds(1.0));
         NamedCommands.registerCommand("Wait2sSai", Commands.waitSeconds(2.0));
@@ -160,7 +160,7 @@ public class RobotContainer {
 
             // Stage 1: rotate to face tag + hood adjust + shooter spinup, all at once
             new ParallelDeadlineGroup(
-                new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(3.0),
+                new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
                 new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
             ),
 
@@ -178,7 +178,7 @@ public class RobotContainer {
                     Hoodsubsystem.stow();
                 },
                 sorterSubsystem, feederSubsystem, shooterSubsystem, Hoodsubsystem
-            ).withTimeout(2.0)
+            ).withTimeout(Constants.Timeouts.kShootPipelineFeedTimeout)
         );
     }
 
@@ -254,7 +254,7 @@ driverController.leftTrigger().onFalse(
         driverController.povLeft().whileTrue(
             new SequentialCommandGroup(
                 new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
-                    .withTimeout(1.5),
+                    .withTimeout(Constants.Timeouts.kManualShootSpinUpTimeout),
                 new RunCommand(() -> {
                     sorterSubsystem.runSorterMotor();
                     feederSubsystem.runFeederMotor();

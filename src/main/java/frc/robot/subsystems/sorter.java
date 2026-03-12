@@ -2,20 +2,19 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 
 public class sorter extends SubsystemBase {
-    //Motor ID for this action
-    private final TalonFX sorterMotor = new TalonFX(32);
+    private final TalonFX sorterMotor = new TalonFX(Constants.Sorter.kSorterMotorID);
 
-    // Runs the sorter motor at -70% to move game pieces toward the feeder/shooter
-    // NOTE: not fully certain if -0.7 is toward shooter or away, depends on motor orientation
+    // Runs the sorter motor to move game pieces toward the feeder/shooter
     public void runSorterMotor() {
-        sorterMotor.set(-0.7);
+        sorterMotor.set(Constants.Sorter.kForwardSpeed);
     }
 
-    // Runs the sorter motor in reverse at 70% to eject/unjam game pieces
+    // Runs the sorter motor in reverse to eject/unjam game pieces
     public void runSorterMotorReverse() {
-        sorterMotor.set(0.7);
+        sorterMotor.set(Constants.Sorter.kReverseSpeed);
     }
 
     // Stops the sorter motor
