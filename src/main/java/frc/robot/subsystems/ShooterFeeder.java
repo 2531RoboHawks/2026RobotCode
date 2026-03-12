@@ -4,7 +4,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ShooterFeeder extends SubsystemBase {
-
+    //Motor ID for this action
     private final TalonFX feederMotor = new TalonFX(40);
 
     // Runs the feeder motor at -30% to push game pieces toward the shooter

@@ -9,8 +9,9 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class intake extends SubsystemBase {
-
+    //Motor ID for this action
     private final TalonFX pivotMotor = new TalonFX(22);
+    //Motor ID for this action
     private final TalonFX rollerMotor = new TalonFX(31);
     private final PositionVoltage positionRequest = new PositionVoltage(0);
 

@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class shooter extends SubsystemBase {
-
+    //Motor ID for this action
     private static final int SHOOTER_MOTOR_ID = 24;
 
     private final TalonFX shooterMotor = new TalonFX(SHOOTER_MOTOR_ID);

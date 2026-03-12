@@ -4,7 +4,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class sorter extends SubsystemBase {
-
+    //Motor ID for this action
     private final TalonFX sorterMotor = new TalonFX(32);
 
     // Runs the sorter motor at -70% to move game pieces toward the feeder/shooter
