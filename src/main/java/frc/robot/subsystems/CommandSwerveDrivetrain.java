@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
+import frc.robot.Constants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -58,8 +59,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 new SwerveRequest.ApplyRobotSpeeds().withSpeeds(speeds)
             ),
             new PPHolonomicDriveController(
-                new PIDConstants(5.0, 0.0, 0.0),
-                new PIDConstants(5.0, 0.0, 0.0)
+                new PIDConstants(Constants.Swerve.kTranslationP, Constants.Swerve.kTranslationI, Constants.Swerve.kTranslationD),
+                new PIDConstants(Constants.Swerve.kRotationP, Constants.Swerve.kRotationI, Constants.Swerve.kRotationD)
             ),
             config,
             () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,

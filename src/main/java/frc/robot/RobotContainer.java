@@ -43,19 +43,19 @@ public class RobotContainer {
     private final ShooterFeeder feederSubsystem = new ShooterFeeder();
     private final shooter shooterSubsystem = new shooter();
 
-    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-    private double MaxAngularRate = RotationsPerSecond.of(1.25).in(RadiansPerSecond);
+    private double MaxSpeed = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+    private double MaxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate).in(RadiansPerSecond);
 
     private final CommandXboxController driverController = new CommandXboxController(0);
     private final CommandXboxController secondController = new CommandXboxController(1);
 
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-        .withDeadband(MaxSpeed * 0.1)
-        .withRotationalDeadband(MaxAngularRate * 0.1)
+        .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
+        .withRotationalDeadband(MaxAngularRate * Constants.Swerve.kDeadbandPercent)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.FieldCentric limelightDrive = new SwerveRequest.FieldCentric()
-        .withDeadband(MaxSpeed * 0.1)
+        .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
         .withRotationalDeadband(0)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
@@ -214,7 +214,7 @@ driverController.rightBumper().whileTrue(
 // Default drive with slow mode on left trigger
 drivetrain.setDefaultCommand(
     drivetrain.applyRequest(() -> {
-        double speedMult = driverController.leftTrigger().getAsBoolean() ? 0.2 : 1.0;
+        double speedMult = driverController.leftTrigger().getAsBoolean() ? Constants.Swerve.kSlowModeMultiplier : 1.0;
         return drive
             .withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
             .withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
