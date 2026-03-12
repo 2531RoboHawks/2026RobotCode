@@ -41,15 +41,20 @@ public class RobotContainer {
     private final shooter shooterSubsystem      = new shooter();
     private final Hoodsubsystem Hoodsubsystem   = new Hoodsubsystem();
 
-    private double MaxSpeed       = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-    private double MaxAngularRate = RotationsPerSecond.of(1.25).in(RadiansPerSecond);
+    private double MaxSpeed = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+    private double MaxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate).in(RadiansPerSecond);
 
     private final CommandXboxController driverController = new CommandXboxController(0);
     private final CommandXboxController secondController = new CommandXboxController(1);
 
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-        .withDeadband(MaxSpeed * 0.1)
-        .withRotationalDeadband(MaxAngularRate * 0.1)
+        .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
+        .withRotationalDeadband(MaxAngularRate * Constants.Swerve.kDeadbandPercent)
+        .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+    private final SwerveRequest.FieldCentric limelightDrive = new SwerveRequest.FieldCentric()
+        .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
+        .withRotationalDeadband(0)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -218,26 +223,26 @@ public class RobotContainer {
             }, sorterSubsystem, feederSubsystem)
         );
 
-        // ── Default drive (slow mode on left trigger) ─────────────────────────
-        drivetrain.setDefaultCommand(
-            drivetrain.applyRequest(() -> {
-                double speedMult = driverController.leftTrigger().getAsBoolean() ? 0.2 : 1.0;
-                return drive
-                    .withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
-                    .withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
-                    .withRotationalRate(-driverController.getRightX() * MaxAngularRate * speedMult);
-            })
-        );
+// Default drive with slow mode on left trigger
+drivetrain.setDefaultCommand(
+    drivetrain.applyRequest(() -> {
+        double speedMult = driverController.leftTrigger().getAsBoolean() ? Constants.Swerve.kSlowModeMultiplier : 1.0;
+        return drive
+            .withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
+            .withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
+            .withRotationalRate(-driverController.getRightX() * MaxAngularRate * speedMult);
+    })
+);
 
-        // Left trigger also runs rollers
-        driverController.leftTrigger().whileTrue(
-            new RunCommand(() -> intakeSubsystem.runRollerMotor(), intakeSubsystem)
-        );
-        driverController.leftTrigger().onFalse(
-            new InstantCommand(() -> intakeSubsystem.stopRoller(), intakeSubsystem)
-        );
+// Left trigger also runs rollers (same button, both happen simultaneously)
+driverController.leftTrigger().whileTrue(
+    new RunCommand(() -> intakeSubsystem.runRollerMotor(), intakeSubsystem)
+);
+driverController.leftTrigger().onFalse(
+    new InstantCommand(() -> intakeSubsystem.stopRoller(), intakeSubsystem)
+);
 
-        // ── Right trigger: manual shooter spin ───────────────────────────────
+        // RIGHT TRIGGER = SHOOTER
         driverController.rightTrigger().whileTrue(
             new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
         );
