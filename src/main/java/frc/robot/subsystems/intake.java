@@ -20,7 +20,7 @@ public class intake extends SubsystemBase {
 
         // PID for holding position — increase kP if it's not holding strong enough
         Slot0Configs slot0 = config.Slot0;
-        slot0.kP = 4.0;  // ← increase this if still not holding
+        slot0.kP = 4.0;  // <- increase this if still not holding
         slot0.kD = 0.1;
 
         pivotMotor.getConfigurator().apply(config);
