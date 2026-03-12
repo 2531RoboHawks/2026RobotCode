@@ -7,85 +7,53 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Hoodsubsystem;
 import frc.robot.generated.TunerConstants;
 
 import static edu.wpi.first.units.Units.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Drives toward an AprilTag using Limelight tx/ty.
- * Each tag has its own TX and TY target.
- * To add more tags, just add entries to TAG_TARGETS below.
+ * Rotates the bot until the Limelight crosshair is centered on the tag (TX = 0).
+ * Does NOT drive forward/back or strafe — translation is zero.
+ * Hood adjusts based on TY (distance from tag) in parallel.
  *
- * Use: "AutoAlignSai" in PathPlanner.
+ * isFinished() when TX is within ±3° AND hood is at goal.
  */
 public class AutoAlignCommand extends Command {
 
-    // ── Gains ─────────────────────────────────────────────────────────────────
-    private static final double DRIVE_KP     = 0.09;
-    private static final double STRAFE_KP    = 0.09;
-    private static final double TX_TOLERANCE = 2.0;
-    private static final double TY_TOLERANCE = 2.0;
-
-    // Default targets used if a tag isn't listed below
-    private static final double DEFAULT_TY = 17.0;
-    private static final double DEFAULT_TX = 0.0;
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // ── ADD/EDIT TAGS HERE ────────────────────────────────────────────────────
-    // Format: TAG_TARGETS.put(tagID, new double[]{TX, TY});
-    // TX = left/right offset from tag center (0 = dead center, + = right, - = left)
-    // TY = how far forward to drive (higher = closer to tag)
-    public static final Map<Integer, double[]> TAG_TARGETS = new HashMap<>();
-    static {
-        TAG_TARGETS.put(10, new double[]{ 0.0, 17.0 }); // { TX, TY }
-        TAG_TARGETS.put(26, new double[]{ 0.0, 17.0 });
-        TAG_TARGETS.put(13, new double[]{ -5.0, 8.0 });
-        TAG_TARGETS.put(29, new double[]{ -5.0, 8.0 });
-
-        // Add more tags here — just uncomment and fill in values:
-        // TAG_TARGETS.put(7,  new double[]{ 0.0, 15.0 });
-        // TAG_TARGETS.put(8,  new double[]{ 0.0, 15.0 });
-        // TAG_TARGETS.put(11, new double[]{ 1.5, 16.0 });
-        // TAG_TARGETS.put(12, new double[]{ 0.0, 17.0 });
-    }
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Rotation gain — tune this if rotation is too fast/slow/oscillates ────
+    private static final double ROTATE_KP    = 0.04; // degrees TX → fraction of max angular rate
+    private static final double TX_TOLERANCE = 3.0;  // degrees — ±3° is "close enough"
 
     private final CommandSwerveDrivetrain drivetrain;
-    private final double maxSpeed;
+    private final Hoodsubsystem           hood;
+    private final double                  maxAngularRate;
 
-    private final SwerveRequest.FieldCentric alignRequest = new SwerveRequest.FieldCentric()
+    private final SwerveRequest.FieldCentric rotateRequest = new SwerveRequest.FieldCentric()
         .withDeadband(0)
         .withRotationalDeadband(0)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
 
-    public AutoAlignCommand(CommandSwerveDrivetrain drivetrain) {
-        this.drivetrain = drivetrain;
-        this.maxSpeed   = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-        addRequirements(drivetrain);
+    public AutoAlignCommand(CommandSwerveDrivetrain drivetrain, Hoodsubsystem hood) {
+        this.drivetrain     = drivetrain;
+        this.hood           = hood;
+        this.maxAngularRate = RotationsPerSecond.of(1.25).in(RadiansPerSecond);
+        addRequirements(drivetrain, hood);
     }
 
-    // Returns the target TY (forward/back distance) for a given AprilTag ID, or default if unknown
-    // Used by RobotContainer for the right bumper manual align drive
-    public static double getTargetTYStatic(int tagID) {
-    return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
-}
-
-    // Returns the target TX (left/right offset) for a given AprilTag ID, or default if unknown
-    // Used by RobotContainer for the right bumper manual align drive
-public static double getTargetTXStatic(int tagID) {
-    return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
-}   
+    @Override
+    public void initialize() {
+        // Start moving hood immediately based on current TY
+        if (hasTarget()) {
+            hood.setFromTY(LimelightHelpers.getTY("limelight"));
+        }
+    }
 
     @Override
     public void execute() {
-        int tagID = getVisibleTagID();
-
-        if (!isValidTag(tagID)) {
+        if (!hasTarget()) {
             drivetrain.setControl(brake);
             return;
         }
@@ -93,53 +61,37 @@ public static double getTargetTXStatic(int tagID) {
         double tx = LimelightHelpers.getTX("limelight");
         double ty = LimelightHelpers.getTY("limelight");
 
+        // Only rotate — zero velocity X and Y
         drivetrain.setControl(
-            alignRequest
-                .withVelocityX((ty - getTargetTY(tagID)) * -DRIVE_KP * maxSpeed)
-                .withVelocityY((tx - getTargetTX(tagID)) * -STRAFE_KP * maxSpeed)
-                .withRotationalRate(0)
+            rotateRequest
+                .withVelocityX(0)
+                .withVelocityY(0)
+                .withRotationalRate(-tx * ROTATE_KP * maxAngularRate)
         );
+
+        // Continuously update hood as TY changes while rotating
+        hood.setFromTY(ty);
     }
 
     @Override
     public boolean isFinished() {
-        int tagID = getVisibleTagID();
-        if (!isValidTag(tagID)) return false;
-
-        double tx = LimelightHelpers.getTX("limelight");
-        double ty = LimelightHelpers.getTY("limelight");
-
-        return Math.abs(tx - getTargetTX(tagID)) < TX_TOLERANCE
-            && Math.abs(ty - getTargetTY(tagID)) < TY_TOLERANCE;
+        if (!hasTarget()) return false;
+        return Math.abs(LimelightHelpers.getTX("limelight")) < TX_TOLERANCE
+            && hood.isAtGoal();
     }
 
     @Override
     public void end(boolean interrupted) {
         drivetrain.setControl(brake);
+        if (interrupted) {
+            hood.stow();
+        }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    // Returns the target TX (left/right offset) for a given tag, used internally by execute/isFinished
-    private double getTargetTX(int tagID) {
-        return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
-    }
-
-    // Returns the target TY (forward/back distance) for a given tag, used internally by execute/isFinished
-    private double getTargetTY(int tagID) {
-        return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
-    }
-
-    // Checks if the given tag ID is one we have target values for
-    private boolean isValidTag(int tagID) {
-        return TAG_TARGETS.containsKey(tagID);
-    }
-
-    // Reads the currently visible AprilTag ID from the Limelight via NetworkTables, returns -1 if none
-    private int getVisibleTagID() {
-        return (int) NetworkTableInstance.getDefault()
+    private boolean hasTarget() {
+        return NetworkTableInstance.getDefault()
             .getTable("limelight")
-            .getEntry("tid")
-            .getDouble(-1);
+            .getEntry("tv")
+            .getDouble(0) == 1.0;
     }
 }
