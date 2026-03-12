@@ -69,10 +69,14 @@ public class AutoAlignCommand extends Command {
         addRequirements(drivetrain);
     }
 
+    // Returns the target TY (forward/back distance) for a given AprilTag ID, or default if unknown
+    // Used by RobotContainer for the right bumper manual align drive
     public static double getTargetTYStatic(int tagID) {
     return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
 }
 
+    // Returns the target TX (left/right offset) for a given AprilTag ID, or default if unknown
+    // Used by RobotContainer for the right bumper manual align drive
 public static double getTargetTXStatic(int tagID) {
     return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
 }   
@@ -116,18 +120,22 @@ public static double getTargetTXStatic(int tagID) {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    // Returns the target TX (left/right offset) for a given tag, used internally by execute/isFinished
     private double getTargetTX(int tagID) {
         return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[0] : DEFAULT_TX;
     }
 
+    // Returns the target TY (forward/back distance) for a given tag, used internally by execute/isFinished
     private double getTargetTY(int tagID) {
         return TAG_TARGETS.containsKey(tagID) ? TAG_TARGETS.get(tagID)[1] : DEFAULT_TY;
     }
 
+    // Checks if the given tag ID is one we have target values for
     private boolean isValidTag(int tagID) {
         return TAG_TARGETS.containsKey(tagID);
     }
 
+    // Reads the currently visible AprilTag ID from the Limelight via NetworkTables, returns -1 if none
     private int getVisibleTagID() {
         return (int) NetworkTableInstance.getDefault()
             .getTable("limelight")

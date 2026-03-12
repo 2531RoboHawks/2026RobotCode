@@ -30,6 +30,8 @@ public class shooter extends SubsystemBase {
         shooterMotor.getConfigurator().apply(config);
     }
 
+    // Returns a command that runs the shooter while active and stops it when ended
+    // NOTE: this method is not currently called anywhere in RobotContainer or commands
     public Command runShooter() {
         return runEnd(
             () -> runShooterMotor(),
@@ -37,10 +39,12 @@ public class shooter extends SubsystemBase {
         );
     }
 
+    // Spins the shooter wheel at 54 RPS using closed-loop velocity control to launch game pieces
     public void runShooterMotor() {
-        shooterMotor.setControl(velocityRequest.withVelocity(54)); // rotations per second, tune this
+        shooterMotor.setControl(velocityRequest.withVelocity(54));
     }
 
+    // Stops the shooter motor
     public void stopShooter() {
         shooterMotor.set(0);
     }

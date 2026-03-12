@@ -46,6 +46,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final Field2d m_field = new Field2d();
 
 
+    // Sets up PathPlanner's AutoBuilder so autonomous paths can control the drivetrain
     private void configureAutoBuilder() {
     try {
         RobotConfig config = RobotConfig.fromGUISettings();
@@ -276,6 +277,7 @@ configureAutoBuilder(); // ADD THIS
 
     }
 
+    // Starts a high-frequency simulation thread (4ms loop) to update drivetrain physics in sim
     private void startSimThread() {
         m_lastSimTime = Utils.getCurrentTimeSeconds();
 
@@ -336,6 +338,7 @@ configureAutoBuilder(); // ADD THIS
         return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
     }
 
+    // Returns the Field2d object for displaying robot position on the SmartDashboard/Shuffleboard
     public Field2d getField() {
     return m_field;
 }

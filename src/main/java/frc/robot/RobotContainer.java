@@ -153,18 +153,9 @@ NamedCommands.registerCommand("Wait4sSai", Commands.waitSeconds(4.0));
     configureBindings();
 }
 
+    // Maps controller buttons/triggers to robot actions (drive, intake, shooter, etc.)
     private void configureBindings() {
 
-        // DEFAULT DRIVE
-        //drivetrain.setDefaultCommand(
-            //drivetrain.applyRequest(() -> {
-                //double speedMult = secondController.a().getAsBoolean() ? 0.1 : 1.0;
-                //return drive
-                    //.withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
-                    //.withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
-                    //.withRotationalRate(-driverController.getRightX() * MaxAngularRate * speedMult);
-            //})
-        //);
 
 driverController.rightBumper().whileTrue(
     drivetrain.applyRequest(() -> {
@@ -283,6 +274,7 @@ driverController.leftTrigger().onFalse(
         );
     }
 
+    // Returns the autonomous command selected from the SmartDashboard auto chooser dropdown
     public Command getAutonomousCommand() {
         return autoChooser.getSelected();
     }
