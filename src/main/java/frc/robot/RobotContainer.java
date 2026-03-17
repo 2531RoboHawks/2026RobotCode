@@ -16,9 +16,15 @@ import frc.robot.subsystems.sorter;
 import frc.robot.subsystems.ShooterFeeder;
 import frc.robot.subsystems.shooter;
 import frc.robot.subsystems.Hoodsubsystem;
+import frc.robot.subsystems.Debug;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
+import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -41,7 +47,7 @@ public class RobotContainer {
     private final shooter shooterSubsystem      = new shooter();
     private final Hoodsubsystem Hoodsubsystem   = new Hoodsubsystem();
 
-    private double MaxSpeed = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+    private double MaxSpeed       = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate).in(RadiansPerSecond);
 
     private final CommandXboxController driverController = new CommandXboxController(Constants.OI.kDriverControllerPort);
@@ -52,20 +58,27 @@ public class RobotContainer {
         .withRotationalDeadband(MaxAngularRate * Constants.Swerve.kDeadbandPercent)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
-    private final SwerveRequest.FieldCentric limelightDrive = new SwerveRequest.FieldCentric()
-        .withDeadband(MaxSpeed * Constants.Swerve.kDeadbandPercent)
-        .withRotationalDeadband(0)
-        .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
 
     public final CommandSwerveDrivetrain drivetrain;
+    @SuppressWarnings("unused")
+    private Debug debugSubsystem;
+
+    private final GenericEntry batteryVoltageEntry;
+    private final GenericEntry slowModeEntry;
+    private final GenericEntry headingEntry;
+    private final GenericEntry readyToShootEntry;
+
+    // How many rotations the hood moves per second when manually adjusted
+    private static final double HOOD_MANUAL_SPEED = 0.3;
 
     public RobotContainer() {
 
         drivetrain = TunerConstants.createDrivetrain();
+        debugSubsystem = new Debug(drivetrain);
 
         // ── Named Commands ────────────────────────────────────────────────────
+
         NamedCommands.registerCommand("IntakeDownSai",
             new StartEndCommand(
                 () -> intakeSubsystem.pivotToDown(),
@@ -104,10 +117,12 @@ public class RobotContainer {
         );
 
         NamedCommands.registerCommand("SpinShooterSai",
-            new SpinShooterCommand(shooterSubsystem).withTimeout(Constants.Timeouts.kSpinShooterTimeout));
+            new SpinShooterCommand(shooterSubsystem)
+                .withTimeout(Constants.Timeouts.kSpinShooterTimeout));
 
         NamedCommands.registerCommand("FeedBallSai",
-            new FeedBallCommand(sorterSubsystem, feederSubsystem).withTimeout(Constants.Timeouts.kFeedBallTimeout));
+            new FeedBallCommand(sorterSubsystem, feederSubsystem)
+                .withTimeout(Constants.Timeouts.kFeedBallTimeout));
 
         NamedCommands.registerCommand("ShootSai",
             new SequentialCommandGroup(
@@ -133,7 +148,40 @@ public class RobotContainer {
         );
 
         NamedCommands.registerCommand("AutoAlignSai",
-            new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(Constants.Timeouts.kAutoAlignTimeout));
+            new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                .withTimeout(Constants.Timeouts.kAutoAlignTimeout));
+
+        // ── NEW: AlignAndShootSai ─────────────────────────────────────────────
+        // Full pipeline in one named command:
+        //   - Rotates bot to face field target coordinate (MegaTag2)
+        //   - Adjusts hood based on real distance to target
+        //   - Spins up shooter in parallel with alignment
+        //   - Fires the instant bot is aligned AND hood is at goal
+        //   - Hood stows after shot
+        // Use this in PathPlanner instead of chaining AutoAlignSai + ShootSai
+        NamedCommands.registerCommand("AlignAndShootSai",
+            new SequentialCommandGroup(
+                new ParallelDeadlineGroup(
+                    new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                        .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
+                    new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
+                ),
+                new StartEndCommand(
+                    () -> {
+                        sorterSubsystem.runSorterMotor();
+                        feederSubsystem.runFeederMotor();
+                        shooterSubsystem.runShooterMotor();
+                    },
+                    () -> {
+                        sorterSubsystem.stop();
+                        feederSubsystem.stop();
+                        shooterSubsystem.stopShooter();
+                        Hoodsubsystem.stow();
+                    },
+                    sorterSubsystem, feederSubsystem, shooterSubsystem, Hoodsubsystem
+                ).withTimeout(Constants.Timeouts.kShootPipelineFeedTimeout)
+            )
+        );
 
         NamedCommands.registerCommand("Wait1sSai", Commands.waitSeconds(1.0));
         NamedCommands.registerCommand("Wait2sSai", Commands.waitSeconds(2.0));
@@ -144,27 +192,23 @@ public class RobotContainer {
         SmartDashboard.putData("Auto Chooser", autoChooser);
         SmartDashboard.putData("Field", drivetrain.getField());
 
+        ShuffleboardTab tab = Shuffleboard.getTab("Important");
+        batteryVoltageEntry = tab.add("Battery Voltage (V)", 0).getEntry();
+        slowModeEntry       = tab.add("Slow Mode Active", false).getEntry();
+        headingEntry        = tab.add("Robot Heading (deg)", 0).getEntry();
+        readyToShootEntry   = tab.add("Ready to Shoot", false).getEntry();
+
         configureBindings();
     }
 
-    // ── Right bumper: full shoot pipeline ─────────────────────────────────────
-    //
-    //  t=0  [AutoAlignCommand]  rotates bot to face tag, hood tracks TY live
-    //       [RunCommand]        shooter spinning up in parallel
-    //          ↓  TX within ±3° AND hood at goal (max 3s)
-    //       feed the ball (2s) → everything stops, hood stows
-    //
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Right bumper / AlignAndShootSai: full shoot pipeline ──────────────────
     private Command buildShootPipeline() {
         return new SequentialCommandGroup(
-
-            // Stage 1: rotate to face tag + hood adjust + shooter spinup, all at once
             new ParallelDeadlineGroup(
-                new AutoAlignCommand(drivetrain, Hoodsubsystem).withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
+                new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                    .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
                 new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
             ),
-
-            // Stage 2: feed — shooter stays on to maintain speed
             new StartEndCommand(
                 () -> {
                     sorterSubsystem.runSorterMotor();
@@ -182,67 +226,43 @@ public class RobotContainer {
         );
     }
 
+    // ── Second controller A-button: align only (no shoot) ────────────────────
+    private Command buildAlignOnly() {
+        return new AutoAlignCommand(drivetrain, Hoodsubsystem)
+            .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout);
+    }
+
     private void configureBindings() {
 
-        // ── Right bumper: full auto shoot pipeline ────────────────────────────
+        // ── DRIVER CONTROLLER ─────────────────────────────────────────────────
+
+        // Right bumper: full auto shoot pipeline
         driverController.rightBumper().whileTrue(buildShootPipeline());
 
-        // ── Left bumper: intake lock ──────────────────────────────────────────
+        // Left bumper: intake lock
         driverController.leftBumper()
             .onTrue(new InstantCommand(() -> intakeSubsystem.lockPosition(), intakeSubsystem))
             .onFalse(new InstantCommand(() -> intakeSubsystem.unlockPosition(), intakeSubsystem));
 
-        // ── Second controller: intake pivot ──────────────────────────────────
-        secondController.y().whileTrue(
-            new StartEndCommand(
-                () -> intakeSubsystem.pivotToUp(),
-                () -> intakeSubsystem.stopPivot(),
-                intakeSubsystem
-            )
+        // Left trigger: slow mode + run rollers
+        drivetrain.setDefaultCommand(
+            drivetrain.applyRequest(() -> {
+                double speedMult = driverController.leftTrigger().getAsBoolean()
+                    ? Constants.Swerve.kSlowModeMultiplier : 1.0;
+                return drive
+                    .withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
+                    .withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
+                    .withRotationalRate(-driverController.getRightX() * MaxAngularRate * speedMult);
+            })
+        );
+        driverController.leftTrigger().whileTrue(
+            new RunCommand(() -> intakeSubsystem.runRollerMotor(), intakeSubsystem)
+        );
+        driverController.leftTrigger().onFalse(
+            new InstantCommand(() -> intakeSubsystem.stopRoller(), intakeSubsystem)
         );
 
-        secondController.x().whileTrue(
-            new StartEndCommand(
-                () -> intakeSubsystem.pivotToDown(),
-                () -> intakeSubsystem.stopPivot(),
-                intakeSubsystem
-            )
-        );
-
-        // ── Second controller: reverse feeder + sorter ────────────────────────
-        secondController.b().whileTrue(
-            new RunCommand(() -> {
-                sorterSubsystem.runSorterMotorReverse();
-                feederSubsystem.runFeederMotorReverse();
-            }, sorterSubsystem, feederSubsystem)
-        );
-        secondController.b().onFalse(
-            new InstantCommand(() -> {
-                sorterSubsystem.stop();
-                feederSubsystem.stop();
-            }, sorterSubsystem, feederSubsystem)
-        );
-
-// Default drive with slow mode on left trigger
-drivetrain.setDefaultCommand(
-    drivetrain.applyRequest(() -> {
-        double speedMult = driverController.leftTrigger().getAsBoolean() ? Constants.Swerve.kSlowModeMultiplier : 1.0;
-        return drive
-            .withVelocityX(-driverController.getLeftY() * MaxSpeed * speedMult)
-            .withVelocityY(-driverController.getLeftX() * MaxSpeed * speedMult)
-            .withRotationalRate(-driverController.getRightX() * MaxAngularRate * speedMult);
-    })
-);
-
-// Left trigger also runs rollers (same button, both happen simultaneously)
-driverController.leftTrigger().whileTrue(
-    new RunCommand(() -> intakeSubsystem.runRollerMotor(), intakeSubsystem)
-);
-driverController.leftTrigger().onFalse(
-    new InstantCommand(() -> intakeSubsystem.stopRoller(), intakeSubsystem)
-);
-
-        // RIGHT TRIGGER = SHOOTER
+        // Right trigger: manual shooter spin
         driverController.rightTrigger().whileTrue(
             new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
         );
@@ -250,7 +270,7 @@ driverController.leftTrigger().onFalse(
             new InstantCommand(() -> shooterSubsystem.stopShooter(), shooterSubsystem)
         );
 
-        // ── DPad left: manual shoot sequence (no alignment) ──────────────────
+        // DPad left: manual shoot sequence (no alignment)
         driverController.povLeft().whileTrue(
             new SequentialCommandGroup(
                 new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
@@ -270,7 +290,7 @@ driverController.leftTrigger().onFalse(
             }, sorterSubsystem, feederSubsystem, shooterSubsystem)
         );
 
-        // ── DPad up: manual sorter + feeder ──────────────────────────────────
+        // DPad up: manual sorter + feeder
         driverController.povUp().whileTrue(
             new RunCommand(() -> {
                 sorterSubsystem.runSorterMotor();
@@ -282,6 +302,83 @@ driverController.leftTrigger().onFalse(
                 sorterSubsystem.stop();
                 feederSubsystem.stop();
             }, sorterSubsystem, feederSubsystem)
+        );
+
+        // ── SECOND CONTROLLER ─────────────────────────────────────────────────
+
+        // A button: align + hood only, no shoot
+        secondController.a().whileTrue(buildAlignOnly());
+        secondController.a().onFalse(
+            new InstantCommand(() -> Hoodsubsystem.stow(), Hoodsubsystem)
+        );
+
+        // DPad up: manually move hood flap up
+        secondController.povUp().whileTrue(
+            new RunCommand(() ->
+                Hoodsubsystem.setPosition(
+                    Hoodsubsystem.getTargetPosition() + HOOD_MANUAL_SPEED * 0.02
+                ),
+                Hoodsubsystem
+            )
+        );
+
+        // DPad down: manually move hood flap down
+        secondController.povDown().whileTrue(
+            new RunCommand(() ->
+                Hoodsubsystem.setPosition(
+                    Hoodsubsystem.getTargetPosition() - HOOD_MANUAL_SPEED * 0.02
+                ),
+                Hoodsubsystem
+            )
+        );
+
+        // Y button: pivot intake up
+        secondController.y().whileTrue(
+            new StartEndCommand(
+                () -> intakeSubsystem.pivotToUp(),
+                () -> intakeSubsystem.stopPivot(),
+                intakeSubsystem
+            )
+        );
+
+        // X button: pivot intake down
+        secondController.x().whileTrue(
+            new StartEndCommand(
+                () -> intakeSubsystem.pivotToDown(),
+                () -> intakeSubsystem.stopPivot(),
+                intakeSubsystem
+            )
+        );
+
+        // B button: reverse feeder + sorter
+        secondController.b().whileTrue(
+            new RunCommand(() -> {
+                sorterSubsystem.runSorterMotorReverse();
+                feederSubsystem.runFeederMotorReverse();
+            }, sorterSubsystem, feederSubsystem)
+        );
+        secondController.b().onFalse(
+            new InstantCommand(() -> {
+                sorterSubsystem.stop();
+                feederSubsystem.stop();
+            }, sorterSubsystem, feederSubsystem)
+        );
+    }
+
+    public void periodic() {
+        batteryVoltageEntry.setDouble(RobotController.getBatteryVoltage());
+        slowModeEntry.setBoolean(driverController.leftTrigger().getAsBoolean());
+        headingEntry.setDouble(drivetrain.getState().Pose.getRotation().getDegrees());
+
+        boolean limelightHasTarget = NetworkTableInstance.getDefault()
+            .getTable(Constants.AutoAlign.kLimelightName)
+            .getEntry("tv")
+            .getDouble(0) == 1.0;
+
+        readyToShootEntry.setBoolean(
+            shooterSubsystem.isAtSpeed()
+            && limelightHasTarget
+            && Hoodsubsystem.isAtGoal()
         );
     }
 

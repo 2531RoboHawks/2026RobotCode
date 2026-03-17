@@ -6,13 +6,18 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.networktables.GenericEntry;
 import frc.robot.Constants;
 
 public class intake extends SubsystemBase {
     private final TalonFX pivotMotor = new TalonFX(Constants.Intake.kPivotMotorID);
     private final TalonFX rollerMotor = new TalonFX(Constants.Intake.kRollerMotorID);
     private final PositionVoltage positionRequest = new PositionVoltage(0);
+
+    private final GenericEntry pivotPositionEntry;
+    private final GenericEntry rollerCurrentEntry;
 
     public intake() {
         TalonFXConfiguration config = new TalonFXConfiguration();
@@ -24,11 +29,16 @@ public class intake extends SubsystemBase {
         slot0.kD = Constants.Intake.kPivotD;
 
         pivotMotor.getConfigurator().apply(config);
+
+        ShuffleboardTab tab = Shuffleboard.getTab("Important");
+        pivotPositionEntry = tab.add("Pivot Position", 0).getEntry();
+        rollerCurrentEntry = tab.add("Roller Current (A)", 0).getEntry();
     }
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Pivot Position", getPivotPosition());
+        pivotPositionEntry.setDouble(getPivotPosition());
+        rollerCurrentEntry.setDouble(rollerMotor.getSupplyCurrent().getValueAsDouble());
     }
 
     // Runs the pivot motor to move the intake arm upward
