@@ -28,6 +28,9 @@ public class intake extends SubsystemBase {
         slot0.kP = Constants.Intake.kPivotP;
         slot0.kD = Constants.Intake.kPivotD;
 
+        config.CurrentLimits.StatorCurrentLimit       = Constants.Intake.kPivotHoldCurrentLimit;
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+
         pivotMotor.getConfigurator().apply(config);
 
         ShuffleboardTab tab = Shuffleboard.getTab("Important");

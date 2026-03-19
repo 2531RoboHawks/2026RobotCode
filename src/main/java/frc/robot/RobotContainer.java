@@ -28,6 +28,9 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+import frc.robot.subsystems.CandleSubsystem;
+import frc.robot.subsystems.CandleSubsystem.CandleState;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelDeadlineGroup;
@@ -41,11 +44,15 @@ public class RobotContainer {
 
     private final SendableChooser<Command> autoChooser;
 
-    private final intake intakeSubsystem        = new intake();
-    private final sorter sorterSubsystem        = new sorter();
-    private final ShooterFeeder feederSubsystem = new ShooterFeeder();
-    private final shooter shooterSubsystem      = new shooter();
-    private final Hoodsubsystem Hoodsubsystem   = new Hoodsubsystem();
+    private final intake intakeSubsystem          = new intake();
+    private final sorter sorterSubsystem          = new sorter();
+    private final ShooterFeeder feederSubsystem   = new ShooterFeeder();
+    private final shooter shooterSubsystem        = new shooter();
+    private final Hoodsubsystem Hoodsubsystem     = new Hoodsubsystem();
+    private final CandleSubsystem candleSubsystem = new CandleSubsystem();
+
+    private final edu.wpi.first.wpilibj.Timer noBallTimer = new edu.wpi.first.wpilibj.Timer();
+    private boolean feederWasRunning = false;
 
     private double MaxSpeed       = Constants.Swerve.kMaxSpeedMultiplier * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate).in(RadiansPerSecond);
@@ -69,7 +76,6 @@ public class RobotContainer {
     private final GenericEntry headingEntry;
     private final GenericEntry readyToShootEntry;
 
-    // How many rotations the hood moves per second when manually adjusted
     private static final double HOOD_MANUAL_SPEED = 0.3;
 
     public RobotContainer() {
@@ -151,14 +157,7 @@ public class RobotContainer {
             new AutoAlignCommand(drivetrain, Hoodsubsystem)
                 .withTimeout(Constants.Timeouts.kAutoAlignTimeout));
 
-        // ── NEW: AlignAndShootSai ─────────────────────────────────────────────
-        // Full pipeline in one named command:
-        //   - Rotates bot to face field target coordinate (MegaTag2)
-        //   - Adjusts hood based on real distance to target
-        //   - Spins up shooter in parallel with alignment
-        //   - Fires the instant bot is aligned AND hood is at goal
-        //   - Hood stows after shot
-        // Use this in PathPlanner instead of chaining AutoAlignSai + ShootSai
+        // AlignAndShootSai keeps timeout for auto — PathPlanner needs a defined end
         NamedCommands.registerCommand("AlignAndShootSai",
             new SequentialCommandGroup(
                 new ParallelDeadlineGroup(
@@ -201,28 +200,41 @@ public class RobotContainer {
         configureBindings();
     }
 
-    // ── Right bumper / AlignAndShootSai: full shoot pipeline ──────────────────
+    // ── Right bumper: full shoot pipeline ─────────────────────────────────────
+    // Feed stage has NO timeout — runs until driver releases right bumper
     private Command buildShootPipeline() {
         return new SequentialCommandGroup(
+            // Phase 1: align + spin up shooter in parallel
             new ParallelDeadlineGroup(
                 new AutoAlignCommand(drivetrain, Hoodsubsystem)
                     .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
-                new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
+                new RunCommand(() -> {
+                    shooterSubsystem.runShooterMotor();
+                    candleSubsystem.setState(CandleState.ALIGNING);
+                }, shooterSubsystem)
             ),
+            // Phase 2: feed — no timeout, runs until button released
             new StartEndCommand(
                 () -> {
                     sorterSubsystem.runSorterMotor();
                     feederSubsystem.runFeederMotor();
                     shooterSubsystem.runShooterMotor();
+                    candleSubsystem.setState(CandleState.NO_BALL);
+                    noBallTimer.reset();
+                    noBallTimer.start();
+                    feederWasRunning = true;
                 },
                 () -> {
                     sorterSubsystem.stop();
                     feederSubsystem.stop();
                     shooterSubsystem.stopShooter();
                     Hoodsubsystem.stow();
+                    noBallTimer.stop();
+                    feederWasRunning = false;
+                    candleSubsystem.setState(CandleState.DEFAULT);
                 },
                 sorterSubsystem, feederSubsystem, shooterSubsystem, Hoodsubsystem
-            ).withTimeout(Constants.Timeouts.kShootPipelineFeedTimeout)
+            ) // ← no .withTimeout() — button release cancels via whileTrue
         );
     }
 
@@ -236,7 +248,7 @@ public class RobotContainer {
 
         // ── DRIVER CONTROLLER ─────────────────────────────────────────────────
 
-        // Right bumper: full auto shoot pipeline
+        // Right bumper: full auto shoot pipeline (no feed timeout)
         driverController.rightBumper().whileTrue(buildShootPipeline());
 
         // Left bumper: intake lock
@@ -256,18 +268,30 @@ public class RobotContainer {
             })
         );
         driverController.leftTrigger().whileTrue(
-            new RunCommand(() -> intakeSubsystem.runRollerMotor(), intakeSubsystem)
+            new RunCommand(() -> {
+                intakeSubsystem.runRollerMotor();
+                intakeSubsystem.lockPosition();
+            }, intakeSubsystem)
         );
         driverController.leftTrigger().onFalse(
-            new InstantCommand(() -> intakeSubsystem.stopRoller(), intakeSubsystem)
+            new InstantCommand(() -> {
+                intakeSubsystem.stopRoller();
+                intakeSubsystem.unlockPosition();
+            }, intakeSubsystem)
         );
 
         // Right trigger: manual shooter spin
         driverController.rightTrigger().whileTrue(
-            new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
+            new RunCommand(() -> {
+                shooterSubsystem.runShooterMotor();
+                candleSubsystem.setState(CandleState.ALIGNING);
+            }, shooterSubsystem)
         );
         driverController.rightTrigger().onFalse(
-            new InstantCommand(() -> shooterSubsystem.stopShooter(), shooterSubsystem)
+            new InstantCommand(() -> {
+                shooterSubsystem.stopShooter();
+                candleSubsystem.setState(CandleState.DEFAULT);
+            }, shooterSubsystem)
         );
 
         // DPad left: manual shoot sequence (no alignment)
@@ -380,6 +404,16 @@ public class RobotContainer {
             && limelightHasTarget
             && Hoodsubsystem.isAtGoal()
         );
+
+        // No-ball detection: feeder running but no load for 0.5s → blink red
+        if (feederWasRunning) {
+            if (feederSubsystem.isUnderLoad()) {
+                noBallTimer.reset();
+                candleSubsystem.setState(CandleState.SHOOTING);
+            } else if (noBallTimer.hasElapsed(0.5)) {
+                candleSubsystem.setState(CandleState.NO_BALL);
+            }
+        }
     }
 
     public Command getAutonomousCommand() {

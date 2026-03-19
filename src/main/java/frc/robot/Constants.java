@@ -42,11 +42,14 @@ public final class Constants {
     public static final class Intake {
         public static final int    kPivotMotorID   = 22;
         public static final int    kRollerMotorID  = 31;
-        public static final double kPivotP         = 3.0;
-        public static final double kPivotD         = 0.1;
+        public static final double kPivotP         = 40.0;
+        public static final double kPivotD         = 0.8;
         public static final double kPivotUpSpeed   = -0.15;
         public static final double kPivotDownSpeed = 0.15;
         public static final double kRollerSpeed    = -0.8;
+
+        public static final double kPivotHoldCurrentLimit = 20.0;
+
     }
 
     /** Shooter subsystem */
@@ -67,6 +70,8 @@ public final class Constants {
 
     /** Feeder subsystem */
     public static final class Feeder {
+        // Amps — tune this up/down based on real current readings with and without a ball
+    public static final double kBallDetectCurrentThreshold = 2.0;      
         public static final int    kFeederMotorID = 40;
         public static final double kForwardSpeed  = -0.3;
         public static final double kReverseSpeed  = 0.8;
@@ -76,7 +81,7 @@ public final class Constants {
     public static final class Hood {
 
         // ← Change this to your hood motor's CAN ID
-        public static final int    kHoodMotorID  = 20;
+        public static final int    kHoodMotorID  = 33;
         // ← Change to "rio" if not on a CANivore
         public static final String kCANbus        = "rio";
 
@@ -145,7 +150,7 @@ public final class Constants {
         public static final String kLimelightName = "limelight";
 
         // Proportional gain for rotation — increase if sluggish, decrease if oscillates
-        public static final double kRotateKP = 0.4;
+        public static final double kRotateKP = 0.01;
 
         // Degrees of heading error that counts as "aligned"
         // Looser = faster. Tighter = more accurate.
@@ -171,14 +176,46 @@ public final class Constants {
         public static final double kShootSpinUpTimeout        = 1.5;
         public static final double kShootFeedTimeout          = 7.0;
         public static final double kAutoAlignTimeout          = 2.5;
-        public static final double kShootPipelineAlignTimeout = 3.0;
-        public static final double kShootPipelineFeedTimeout  = 2.0;
+        public static final double kShootPipelineAlignTimeout = 2.0;
+        public static final double kShootPipelineFeedTimeout  = 4.0;
         public static final double kManualShootSpinUpTimeout  = 1.5;
     }
 
     /** Agitate command */
     public static final class Agitate {
         public static final double kSwitchInterval = 0.3;
+    }
+
+    /** CANdle LED subsystem */
+    public static final class CANdle {
+        public static final int CAN_ID = 41;
+        public static final String CAN_BUS = "";
+        public static final int LED_START = 0;
+        public static final int LED_ONBOARD_COUNT = 8;
+        public static final int LED_EXTERNAL_COUNT = 60;
+        public static final int LED_END = LED_START + LED_ONBOARD_COUNT + LED_EXTERNAL_COUNT - 1;
+
+        public static final String STRIP_TYPE = "GRB";
+
+        public static final String KEY_R = "CANdle/R";
+        public static final String KEY_G = "CANdle/G";
+        public static final String KEY_B = "CANdle/B";
+        public static final String KEY_OFF = "CANdle/Off";
+        public static final String KEY_AUTO_MODE = "CANdle/AutoMode";
+        public static final String KEY_PURPLE_GOLD = "CANdle/PurpleGold";
+        public static final String KEY_STATUS = "CANdle/Status";
+        public static final String KEY_CONFIG_STATUS = "CANdle/ConfigStatus";
+        public static final String KEY_APPLIED_R = "CANdle/AppliedR";
+        public static final String KEY_APPLIED_G = "CANdle/AppliedG";
+        public static final String KEY_APPLIED_B = "CANdle/AppliedB";
+
+        public static final int PURPLE_R = 128;
+        public static final int PURPLE_G = 0;
+        public static final int PURPLE_B = 255;
+        public static final int GOLD_R = 255;
+        public static final int GOLD_G = 191;
+        public static final int GOLD_B = 0;
+        public static final double AUTO_CYCLE_SECONDS = 1.5;
     }
 
     /** Operator Interface */
