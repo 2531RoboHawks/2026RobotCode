@@ -198,6 +198,9 @@ public class RobotContainer {
         readyToShootEntry   = tab.add("Ready to Shoot", false).getEntry();
 
         configureBindings();
+
+        // Keeps Hoodsubsystem registered with the scheduler so periodic() always runs
+        Hoodsubsystem.setDefaultCommand(new RunCommand(() -> {}, Hoodsubsystem));
     }
 
     // ── Right bumper: full shoot pipeline ─────────────────────────────────────
@@ -208,10 +211,14 @@ public class RobotContainer {
             new ParallelDeadlineGroup(
                 new AutoAlignCommand(drivetrain, Hoodsubsystem)
                     .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
-                new RunCommand(() -> {
-                    shooterSubsystem.runShooterMotor();
-                    candleSubsystem.setState(CandleState.ALIGNING);
-                }, shooterSubsystem)
+                new StartEndCommand(
+                    () -> {
+                        shooterSubsystem.runShooterMotor();
+                        candleSubsystem.setState(CandleState.ALIGNING);
+                    },
+                    () -> {}, // shooter intentionally kept running into phase 2
+                    shooterSubsystem, candleSubsystem
+                )
             ),
             // Phase 2: feed — no timeout, runs until button released
             new StartEndCommand(
@@ -219,7 +226,7 @@ public class RobotContainer {
                     sorterSubsystem.runSorterMotor();
                     feederSubsystem.runFeederMotor();
                     shooterSubsystem.runShooterMotor();
-                    candleSubsystem.setState(CandleState.NO_BALL);
+                    candleSubsystem.setState(CandleState.SHOOTING);
                     noBallTimer.reset();
                     noBallTimer.start();
                     feederWasRunning = true;
@@ -227,7 +234,7 @@ public class RobotContainer {
                 () -> {
                     sorterSubsystem.stop();
                     feederSubsystem.stop();
-                    shooterSubsystem.stopShooter();
+                    shooterSubsystem.stopShooter(); // ← guaranteed to run on release
                     Hoodsubsystem.stow();
                     noBallTimer.stop();
                     feederWasRunning = false;
@@ -256,7 +263,7 @@ public class RobotContainer {
             .onTrue(new InstantCommand(() -> intakeSubsystem.lockPosition(), intakeSubsystem))
             .onFalse(new InstantCommand(() -> intakeSubsystem.unlockPosition(), intakeSubsystem));
 
-        // Left trigger: slow mode + run rollers
+        // Left trigger: slow mode + run rollers + lock arm position
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() -> {
                 double speedMult = driverController.leftTrigger().getAsBoolean()
@@ -285,7 +292,7 @@ public class RobotContainer {
             new RunCommand(() -> {
                 shooterSubsystem.runShooterMotor();
                 candleSubsystem.setState(CandleState.ALIGNING);
-            }, shooterSubsystem)
+            }, shooterSubsystem, candleSubsystem)
         );
         driverController.rightTrigger().onFalse(
             new InstantCommand(() -> {
@@ -297,12 +304,16 @@ public class RobotContainer {
         // DPad left: manual shoot sequence (no alignment)
         driverController.povLeft().whileTrue(
             new SequentialCommandGroup(
-                new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
+                new RunCommand(() -> {
+                    shooterSubsystem.runShooterMotor();
+                    candleSubsystem.setState(CandleState.ALIGNING);
+                }, shooterSubsystem)
                     .withTimeout(Constants.Timeouts.kManualShootSpinUpTimeout),
                 new RunCommand(() -> {
                     sorterSubsystem.runSorterMotor();
                     feederSubsystem.runFeederMotor();
                     shooterSubsystem.runShooterMotor();
+                    candleSubsystem.setState(CandleState.SHOOTING);
                 }, sorterSubsystem, feederSubsystem, shooterSubsystem)
             )
         );
@@ -311,6 +322,7 @@ public class RobotContainer {
                 sorterSubsystem.stop();
                 feederSubsystem.stop();
                 shooterSubsystem.stopShooter();
+                candleSubsystem.setState(CandleState.DEFAULT);
             }, sorterSubsystem, feederSubsystem, shooterSubsystem)
         );
 
@@ -319,21 +331,31 @@ public class RobotContainer {
             new RunCommand(() -> {
                 sorterSubsystem.runSorterMotor();
                 feederSubsystem.runFeederMotor();
+                candleSubsystem.setState(CandleState.SHOOTING);
             }, sorterSubsystem, feederSubsystem)
         );
         driverController.povUp().onFalse(
             new InstantCommand(() -> {
                 sorterSubsystem.stop();
                 feederSubsystem.stop();
+                candleSubsystem.setState(CandleState.DEFAULT);
             }, sorterSubsystem, feederSubsystem)
         );
 
         // ── SECOND CONTROLLER ─────────────────────────────────────────────────
 
         // A button: align + hood only, no shoot
-        secondController.a().whileTrue(buildAlignOnly());
+        secondController.a().whileTrue(
+            new SequentialCommandGroup(
+                new InstantCommand(() -> candleSubsystem.setState(CandleState.ALIGNING)),
+                buildAlignOnly()
+            )
+        );
         secondController.a().onFalse(
-            new InstantCommand(() -> Hoodsubsystem.stow(), Hoodsubsystem)
+            new InstantCommand(() -> {
+                Hoodsubsystem.stow();
+                candleSubsystem.setState(CandleState.DEFAULT);
+            }, Hoodsubsystem)
         );
 
         // DPad up: manually move hood flap up
@@ -409,7 +431,6 @@ public class RobotContainer {
         if (feederWasRunning) {
             if (feederSubsystem.isUnderLoad()) {
                 noBallTimer.reset();
-                candleSubsystem.setState(CandleState.SHOOTING);
             } else if (noBallTimer.hasElapsed(0.5)) {
                 candleSubsystem.setState(CandleState.NO_BALL);
             }
