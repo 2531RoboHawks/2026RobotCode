@@ -240,7 +240,7 @@ public class RobotContainer {
                     feederWasRunning = false;
                     candleSubsystem.setState(CandleState.DEFAULT);
                 },
-                sorterSubsystem, feederSubsystem, shooterSubsystem, Hoodsubsystem
+                sorterSubsystem, feederSubsystem, shooterSubsystem // hood not required
             ) // ← no .withTimeout() — button release cancels via whileTrue
         );
     }
