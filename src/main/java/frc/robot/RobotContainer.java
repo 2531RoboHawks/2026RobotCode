@@ -217,7 +217,7 @@ public class RobotContainer {
                         candleSubsystem.setState(CandleState.ALIGNING);
                     },
                     () -> {}, // shooter intentionally kept running into phase 2
-                    shooterSubsystem, candleSubsystem
+                    shooterSubsystem // ← candleSubsystem removed, no requirement conflict
                 )
             ),
             // Phase 2: feed — no timeout, runs until button released
