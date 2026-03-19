@@ -58,7 +58,7 @@ public final class Constants {
         public static final double kOpenLoopRampPeriod = 2.0;
         public static final double kP                  = 0.6;
         public static final double kV                  = 0.10;
-        public static final double kShooterVelocity    = 54.0;
+        public static final double kShooterVelocity    = 49.0;
     }
 
     /** Sorter subsystem */
@@ -102,9 +102,9 @@ public final class Constants {
         // CruiseVelocity: max speed in mechanism rot/s — increase for faster movement
         // Acceleration:   how quickly it reaches cruise — increase for snappier start
         // Jerk:           how quickly acceleration ramps — leave high to avoid jerk limits
-        public static final double kMMCruiseVelocity = 2.0;
-        public static final double kMMAcceleration   = 2.0;
-        public static final double kMMJerk           = 20.0;
+        public static final double kMMCruiseVelocity = 15.0;
+        public static final double kMMAcceleration   = 25.0;
+        public static final double kMMJerk           = 100.0;
 
         // ── PID + Feedforward ─────────────────────────────────────────────────
         // kP: proportional gain — increase if hood is slow to reach target
@@ -112,7 +112,7 @@ public final class Constants {
         // kS: static friction  — minimum voltage to overcome friction
         // kV: velocity feedforward — volts per rot/s
         // kG: gravity feedforward — increase if hood sags under gravity, 0 if horizontal
-        public static final double kP = 0.5;
+        public static final double kP = 3.0;
         public static final double kI = 0.0;
         public static final double kD = 0.1;
         public static final double kS = 0.1;
