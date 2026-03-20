@@ -87,6 +87,20 @@ public class RobotContainer {
         debugSubsystem = new Debug(drivetrain);
 
         // ── Named Commands ────────────────────────────────────────────────────
+        //
+        // Command         | What It Does                                      | Subsystems                                        | Timeout
+        // ----------------|---------------------------------------------------|---------------------------------------------------|---------------------------
+        // IntakeDown      | Pivots intake arm down (instant)                  | intake                                            | Instant
+        // IntakeUp        | Pivots intake arm up (instant)                    | intake                                            | Instant
+        // RunIntake       | Runs intake roller motors                         | intake                                            | 5.5s
+        // SpinShooter     | Spins shooter wheel to speed                      | shooter                                           | 1.5s
+        // FeedBall        | Runs sorter + feeder                              | sorter, ShooterFeeder                             | 1.0s
+        // Shoot           | Spin up shooter, then feed (shooter stays on)     | shooter, sorter, ShooterFeeder                    | 1.5s spin-up + 7.0s feed
+        // QuickShoot      | Feed + shoot simultaneously (no spin-up delay)    | shooter, sorter, ShooterFeeder                    | 7.0s
+        // AutoAlign       | Rotate to face target + adjust hood               | drivetrain, Hoodsubsystem                         | 2.5s
+        // AlignAndShoot   | Align + spin up in parallel, then feed            | drivetrain, Hoodsubsystem, shooter, sorter, feeder| 2.0s align + 4.0s feed
+        // Wait1s-4s       | Wait 1-4 seconds                                 | none                                              | 1-4s
+        //
 
         NamedCommands.registerCommand("IntakeDown",
             new IntakeDownCommand(intakeSubsystem));
