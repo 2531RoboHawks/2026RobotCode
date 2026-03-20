@@ -3,52 +3,38 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.6113181818181816,
-        "y": 0.8605000000000007
+        "x": 3.631931818181818,
+        "y": 0.8398863636363638
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.2714318181818176,
-        "y": 0.9017272727272735
+        "x": 2.044681818181818,
+        "y": 0.7677386363636364
       },
       "isLocked": false,
-      "linkedName": "BlueRightStart"
+      "linkedName": "BlueRightStartPoint"
     },
     {
       "anchor": {
-        "x": 0.5604999999999998,
-        "y": 0.6131363636363643
+        "x": 0.5398863636363636,
+        "y": 0.6749772727272727
       },
       "prevControl": {
-        "x": 1.6324090909090916,
-        "y": 1.004795454545455
+        "x": 1.879772727272727,
+        "y": 0.6646704545454554
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "HumanPlayerIntake"
+      "linkedName": "BlueHuman"
     }
   ],
   "rotationTargets": [],
-  "constraintZones": [
-    {
-      "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.4765217391304355,
-      "maxWaypointRelativePos": 1.0,
-      "constraints": {
-        "maxVelocity": 1.2,
-        "maxAcceleration": 1.0,
-        "maxAngularVelocity": 540.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    }
-  ],
+  "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 4.0,
-    "maxAcceleration": 3.5,
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
@@ -64,5 +50,5 @@
     "velocity": 0,
     "rotation": 0.0
   },
-  "useDefaultConstraints": false
+  "useDefaultConstraints": true
 }

@@ -10,6 +10,9 @@ import com.pathplanner.lib.auto.NamedCommands;
 
 import frc.robot.commands.AutoAlignCommand;
 import frc.robot.commands.FeedBallCommand;
+import frc.robot.commands.IntakeDownCommand;
+import frc.robot.commands.IntakeUpCommand;
+import frc.robot.commands.RunIntakeCommand;
 import frc.robot.commands.SpinShooterCommand;
 import frc.robot.subsystems.intake;
 import frc.robot.subsystems.sorter;
@@ -85,85 +88,56 @@ public class RobotContainer {
 
         // ── Named Commands ────────────────────────────────────────────────────
 
-        NamedCommands.registerCommand("IntakeDownSai",
-            new StartEndCommand(
-                () -> intakeSubsystem.pivotToDown(),
-                () -> intakeSubsystem.stopPivot(),
-                intakeSubsystem
-            ).withTimeout(Constants.Timeouts.kIntakeDownTimeout)
-        );
+        NamedCommands.registerCommand("IntakeDown",
+            new IntakeDownCommand(intakeSubsystem));
 
-        NamedCommands.registerCommand("IntakeUpSai",
-            new StartEndCommand(
-                () -> intakeSubsystem.pivotToUp(),
-                () -> intakeSubsystem.stopPivot(),
-                intakeSubsystem
-            ).withTimeout(Constants.Timeouts.kIntakeUpTimeout)
-        );
+        NamedCommands.registerCommand("IntakeUp",
+            new IntakeUpCommand(intakeSubsystem));
 
-        NamedCommands.registerCommand("RunIntakeSai",
-            new SequentialCommandGroup(
-                new StartEndCommand(
-                    () -> intakeSubsystem.runRollerMotor(),
-                    () -> {},
-                    intakeSubsystem
-                ).withTimeout(Constants.Timeouts.kRunIntakePhase1Timeout),
-                new StartEndCommand(
-                    () -> {
-                        intakeSubsystem.lockPosition();
-                        intakeSubsystem.runRollerMotor();
-                    },
-                    () -> {
-                        intakeSubsystem.unlockPosition();
-                        intakeSubsystem.stopRoller();
-                    },
-                    intakeSubsystem
-                ).withTimeout(Constants.Timeouts.kRunIntakePhase2Timeout)
-            )
-        );
+        NamedCommands.registerCommand("RunIntake",
+            new RunIntakeCommand(intakeSubsystem)
+                .withTimeout(Constants.Timeouts.kRunIntakePhase2Timeout));
 
-        NamedCommands.registerCommand("SpinShooterSai",
+        NamedCommands.registerCommand("SpinShooter",
             new SpinShooterCommand(shooterSubsystem)
                 .withTimeout(Constants.Timeouts.kSpinShooterTimeout));
 
-        NamedCommands.registerCommand("FeedBallSai",
+        NamedCommands.registerCommand("FeedBall",
             new FeedBallCommand(sorterSubsystem, feederSubsystem)
                 .withTimeout(Constants.Timeouts.kFeedBallTimeout));
 
-        NamedCommands.registerCommand("ShootSai",
+        NamedCommands.registerCommand("Shoot",
             new SequentialCommandGroup(
-                new StartEndCommand(
-                    () -> shooterSubsystem.runShooterMotor(),
-                    () -> {},
-                    shooterSubsystem
-                ).withTimeout(Constants.Timeouts.kShootSpinUpTimeout),
-                new StartEndCommand(
-                    () -> {
-                        sorterSubsystem.runSorterMotor();
-                        feederSubsystem.runFeederMotor();
-                        shooterSubsystem.runShooterMotor();
-                    },
-                    () -> {
-                        sorterSubsystem.stop();
-                        feederSubsystem.stop();
-                        shooterSubsystem.stopShooter();
-                    },
-                    sorterSubsystem, feederSubsystem, shooterSubsystem
-                ).withTimeout(Constants.Timeouts.kShootFeedTimeout)
+                // Phase 1: spin up shooter
+                new SpinShooterCommand(shooterSubsystem)
+                    .withTimeout(Constants.Timeouts.kShootSpinUpTimeout),
+                // Phase 2: feed while keeping shooter running
+                new ParallelDeadlineGroup(
+                    new FeedBallCommand(sorterSubsystem, feederSubsystem)
+                        .withTimeout(Constants.Timeouts.kShootFeedTimeout),
+                    new SpinShooterCommand(shooterSubsystem)
+                )
             )
         );
 
-        NamedCommands.registerCommand("AutoAlignSai",
+        NamedCommands.registerCommand("QuickShoot",
+            new ParallelDeadlineGroup(
+                new FeedBallCommand(sorterSubsystem, feederSubsystem)
+                    .withTimeout(Constants.Timeouts.kShootFeedTimeout),
+                new SpinShooterCommand(shooterSubsystem)
+            )
+        );
+
+        NamedCommands.registerCommand("AutoAlign",
             new AutoAlignCommand(drivetrain, Hoodsubsystem)
                 .withTimeout(Constants.Timeouts.kAutoAlignTimeout));
 
-        // AlignAndShootSai keeps timeout for auto — PathPlanner needs a defined end
-        NamedCommands.registerCommand("AlignAndShootSai",
+        NamedCommands.registerCommand("AlignAndShoot",
             new SequentialCommandGroup(
                 new ParallelDeadlineGroup(
                     new AutoAlignCommand(drivetrain, Hoodsubsystem)
                         .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
-                    new RunCommand(() -> shooterSubsystem.runShooterMotor(), shooterSubsystem)
+                    new SpinShooterCommand(shooterSubsystem)
                 ),
                 new StartEndCommand(
                     () -> {
@@ -182,10 +156,10 @@ public class RobotContainer {
             )
         );
 
-        NamedCommands.registerCommand("Wait1sSai", Commands.waitSeconds(1.0));
-        NamedCommands.registerCommand("Wait2sSai", Commands.waitSeconds(2.0));
-        NamedCommands.registerCommand("Wait3sSai", Commands.waitSeconds(3.0));
-        NamedCommands.registerCommand("Wait4sSai", Commands.waitSeconds(4.0));
+        NamedCommands.registerCommand("Wait1s", Commands.waitSeconds(1.0));
+        NamedCommands.registerCommand("Wait2s", Commands.waitSeconds(2.0));
+        NamedCommands.registerCommand("Wait3s", Commands.waitSeconds(3.0));
+        NamedCommands.registerCommand("Wait4s", Commands.waitSeconds(4.0));
 
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
