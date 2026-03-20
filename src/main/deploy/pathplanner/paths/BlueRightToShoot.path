@@ -8,20 +8,20 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.890079545454545,
-        "y": 0.63375
+        "x": 3.3845681818181816,
+        "y": 0.7471249999999998
       },
       "isLocked": false,
       "linkedName": "BlueRightStartPoint"
     },
     {
       "anchor": {
-        "x": 2.487875,
-        "y": 2.6229659090909094
+        "x": 2.3745,
+        "y": 1.5510568181818187
       },
       "prevControl": {
-        "x": 1.8076249999999998,
-        "y": 1.654125
+        "x": 3.0856704545454545,
+        "y": 0.9326477272727276
       },
       "nextControl": null,
       "isLocked": false,
