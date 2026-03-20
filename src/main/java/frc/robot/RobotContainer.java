@@ -208,28 +208,32 @@ public class RobotContainer {
                     shooterSubsystem // ← candleSubsystem removed, no requirement conflict
                 )
             ),
-            // Phase 2: feed — no timeout, runs until button released
-            new StartEndCommand(
-                () -> {
-                    sorterSubsystem.runSorterMotor();
-                    feederSubsystem.runFeederMotor();
-                    shooterSubsystem.runShooterMotor();
-                    candleSubsystem.setState(CandleState.SHOOTING);
-                    noBallTimer.reset();
-                    noBallTimer.start();
-                    feederWasRunning = true;
-                },
-                () -> {
-                    sorterSubsystem.stop();
-                    feederSubsystem.stop();
-                    shooterSubsystem.stopShooter(); // ← guaranteed to run on release
-                    Hoodsubsystem.stow();
-                    noBallTimer.stop();
-                    feederWasRunning = false;
-                    candleSubsystem.setState(CandleState.DEFAULT);
-                },
-                sorterSubsystem, feederSubsystem, shooterSubsystem // hood not required
-            ) // ← no .withTimeout() — button release cancels via whileTrue
+            // Phase 2: feed + hold drivetrain in brake — no timeout, runs until button released
+            new ParallelDeadlineGroup(
+                new StartEndCommand(
+                    () -> {
+                        sorterSubsystem.runSorterMotor();
+                        feederSubsystem.runFeederMotor();
+                        shooterSubsystem.runShooterMotor();
+                        candleSubsystem.setState(CandleState.SHOOTING);
+                        noBallTimer.reset();
+                        noBallTimer.start();
+                        feederWasRunning = true;
+                    },
+                    () -> {
+                        sorterSubsystem.stop();
+                        feederSubsystem.stop();
+                        shooterSubsystem.stopShooter(); // ← guaranteed to run on release
+                        Hoodsubsystem.stow();
+                        noBallTimer.stop();
+                        feederWasRunning = false;
+                        candleSubsystem.setState(CandleState.DEFAULT);
+                    },
+                    sorterSubsystem, feederSubsystem, shooterSubsystem // hood not required
+                ),
+                // Keep drivetrain locked so default command doesn't take over
+                new RunCommand(() -> drivetrain.setControl(brake), drivetrain)
+            )
         );
     }
 

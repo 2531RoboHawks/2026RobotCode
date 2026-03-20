@@ -126,19 +126,20 @@ public class AutoAlignCommand extends Command {
     public void end(boolean interrupted) {
         drivetrain.setControl(brake);
         SmartDashboard.putString("AutoAlign/Status", interrupted ? "Interrupted" : "Done");
-        if (interrupted) {
-            hood.stow();
-        }
+        // hood intentionally NOT stowed here — let the shoot pipeline finish feeding first
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Translation2d getTargetCoordinate() {
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-            return new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
-        }
-        return new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
+        Translation2d blue = new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
+        Translation2d red  = new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
+
+        Translation2d robotPos = drivetrain.getState().Pose.getTranslation();
+        double distBlue = robotPos.getDistance(blue);
+        double distRed  = robotPos.getDistance(red);
+
+        return distRed < distBlue ? red : blue;
     }
 
     private double getDistanceToTarget() {

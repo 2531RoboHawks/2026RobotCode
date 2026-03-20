@@ -58,7 +58,7 @@ public final class Constants {
         public static final double kOpenLoopRampPeriod = 2.0;
         public static final double kP                  = 0.6;
         public static final double kV                  = 0.10;
-        public static final double kShooterVelocity    = 49.0;
+        public static final double kShooterVelocity    = 43.0;//potter wants to test lower for pop shot 
     }
 
     /** Sorter subsystem */
@@ -137,17 +137,17 @@ public final class Constants {
         //   4.0          | 4.5   (far)
         //   5.0          | 7.0   (very far)
         public static final double[][] kDistToHood = {
-            { 2.0, 0.5 },
-            { 3.0, 1.0 },
-            { 4.0, 1.5 },
-            { 5.0, 2.0 },
+            { 2.0, 0.037 },
+            { 3.0, 0.05 },
+            { 4.0, 0.1 },
+            { 5.0, 0.12 },
         };
     }
 
     /** Auto-align and field targeting */
     public static final class AutoAlign {
         // NetworkTables name of the Limelight
-        public static final String kLimelightName = "limelight";
+        public static final String kLimelightName = "limelight-a";
 
         // Proportional gain for rotation — increase if sluggish, decrease if oscillates
         public static final double kRotateKP = 0.01;
