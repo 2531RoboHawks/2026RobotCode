@@ -8,73 +8,73 @@ public final class Constants {
 
     /** Swerve drivetrain tuning -- speeds, PID, and current limits */
     public static final class Swerve {
-        public static final double kMaxSpeedMultiplier = 1.0;
-        public static final double kMaxAngularRate     = 1.25;
-        public static final double kDeadbandPercent    = 0.1;
-        public static final double kSlowModeMultiplier = 0.2;
+        public static final double kMaxSpeedMultiplier = 1.0; // full-speed scale (0–1)
+        public static final double kMaxAngularRate     = 1.25; // max turn speed in rot/s (0.75–2.0)
+        public static final double kDeadbandPercent    = 0.1; // joystick deadzone % (0.05–0.15)
+        public static final double kSlowModeMultiplier = 0.14; // slow mode speed scale (0.15–0.35)
 
-        public static final double kTranslationP = 5.0;
+        public static final double kTranslationP = 5.0; // auto path position correction (1–10)
         public static final double kTranslationI = 0.0;
         public static final double kTranslationD = 0.0;
-        public static final double kRotationP    = 5.0;
+        public static final double kRotationP    = 5.0; // auto path heading correction (1–10)
         public static final double kRotationI    = 0.0;
         public static final double kRotationD    = 0.0;
 
-        public static final double kDriveP = 0.2;
+        public static final double kDriveP = 0.2; // wheel speed correction (0.05–0.5)
         public static final double kDriveI = 0.0;
         public static final double kDriveD = 0.0;
-        public static final double kDriveS = 0.0;
-        public static final double kDriveV = 0.124;
+        public static final double kDriveS = 0.0; // static friction volts (0–0.25)
+        public static final double kDriveV = 0.124; // velocity FF, volts per speed unit (0.1–0.15)
 
-        public static final double kSteerP = 100.0;
+        public static final double kSteerP = 100.0; // wheel angle snap strength (50–150)
         public static final double kSteerI = 0.0;
-        public static final double kSteerD = 0.5;
-        public static final double kSteerS = 0.1;
-        public static final double kSteerV = 2.66;
-        public static final double kSteerA = 0.0;
+        public static final double kSteerD = 0.5; // dampens angle oscillation (0–2)
+        public static final double kSteerS = 0.1; // static friction volts (0–0.25)
+        public static final double kSteerV = 2.66; // velocity FF (1.5–3.5)
+        public static final double kSteerA = 0.0; // accel FF (usually 0)
 
-        public static final double kDriveCurrentLimit = 80.0;
-        public static final double kSteerCurrentLimit = 60.0;
-        public static final double kSlipCurrent       = 85.0;
+        public static final double kDriveCurrentLimit = 60.0; // drive motor amps cap (40–80)
+        public static final double kSteerCurrentLimit = 60.0; // steer motor amps cap (20–60)
+        public static final double kSlipCurrent       = 70.0; // traction control limit amps (60–120)
     }
 
     /** Intake subsystem */
     public static final class Intake {
-        public static final int    kPivotMotorID   = 22;
-        public static final int    kRollerMotorID  = 31;
-        public static final double kPivotP         = 40.0;
-        public static final double kPivotD         = 0.8;
-        public static final double kPivotUpSpeed   = -0.15;
-        public static final double kPivotDownSpeed = 0.15;
-        public static final double kRollerSpeed    = -0.8;
+        public static final int    kPivotMotorID   = 22; // CAN ID of pivot motor
+        public static final int    kRollerMotorID  = 31; // CAN ID of roller motor
+        public static final double kPivotP         = 80.0; // position hold strength (20–200)
+        public static final double kPivotD         = 5.0; // dampens pivot oscillation (0.5–10)
+        public static final double kPivotUpSpeed   = -0.3; // open-loop up power, negative = up (-0.1 to -0.5)
+        public static final double kPivotDownSpeed = 0.15; // open-loop down power (0.1–0.3)
+        public static final double kRollerSpeed    = -0.8; // roller intake speed (-0.5 to -1.0)
 
-        public static final double kPivotHoldCurrentLimit = 20.0;
+        public static final double kPivotHoldCurrentLimit = 40.0; // max amps for pivot motor (20–60)
 
     }
 
     /** Shooter subsystem */
     public static final class Shooter {
-        public static final int    kShooterMotorID     = 24;
-        public static final double kOpenLoopRampPeriod = 2.0;
-        public static final double kP                  = 0.6;
-        public static final double kV                  = 0.10;
-        public static final double kShooterVelocity    = 43.0;//potter wants to test lower for pop shot 
+        public static final int    kShooterMotorID     = 24; // CAN ID of shooter motor
+        public static final double kOpenLoopRampPeriod = 2.0; // seconds to ramp to full speed (0.5–3.0)
+        public static final double kP                  = 0.6; // velocity correction strength (0.1–1.0)
+        public static final double kV                  = 0.10; // velocity FF, volts per rot/s (0.05–0.15)
+        public static final double kShooterVelocity    = 43.0; // target speed in rot/s (30–60) //potter wants to test lower for pop shot
     }
 
     /** Sorter subsystem */
     public static final class Sorter {
-        public static final int    kSorterMotorID = 32;
-        public static final double kForwardSpeed  = -0.7;
-        public static final double kReverseSpeed  = 0.7;
+        public static final int    kSorterMotorID = 32; // CAN ID of sorter motor
+        public static final double kForwardSpeed  = -0.5; // forward sort power (-0.3 to -0.8)
+        public static final double kReverseSpeed  = 0.7; // reverse sort power (0.3–1.0)
     }
 
     /** Feeder subsystem */
     public static final class Feeder {
         // Amps — tune this up/down based on real current readings with and without a ball
-    public static final double kBallDetectCurrentThreshold = 2.0;      
-        public static final int    kFeederMotorID = 40;
-        public static final double kForwardSpeed  = -0.3;
-        public static final double kReverseSpeed  = 0.8;
+    public static final double kBallDetectCurrentThreshold = 2.0; // current spike = ball detected (1–5 amps)
+        public static final int    kFeederMotorID = 40; // CAN ID of feeder motor
+        public static final double kForwardSpeed  = -0.5; // feed forward power (-0.3 to -0.8)
+        public static final double kReverseSpeed  = 0.8; // feed reverse power (0.5–1.0)
     }
 
     /** Hood subsystem -- Falcon 500 with two 5:1 reductions (25:1 total) */
@@ -147,14 +147,14 @@ public final class Constants {
     /** Auto-align and field targeting */
     public static final class AutoAlign {
         // NetworkTables name of the Limelight
-        public static final String kLimelightName = "limelight-a";
+        public static final String kLimelightName = "limelight-temp";
 
         // Proportional gain for rotation — increase if sluggish, decrease if oscillates
-        public static final double kRotateKP = 0.01;
+        public static final double kRotateKP = 0.02; // rotation correction strength (0.005–0.05)
 
         // Degrees of heading error that counts as "aligned"
         // Looser = faster. Tighter = more accurate.
-        public static final double kAngleTolerance = 2.5;
+        public static final double kAngleTolerance = 2.0; // degrees of allowed error (1–5)
 
         // Blue alliance shooting target (meters, WPILib field coordinates)
         public static final double kBlueTargetX = 4.621;
@@ -178,7 +178,7 @@ public final class Constants {
         public static final double kAutoAlignTimeout          = 2.5;
         public static final double kShootPipelineAlignTimeout = 2.0;
         public static final double kShootPipelineFeedTimeout  = 4.0;
-        public static final double kManualShootSpinUpTimeout  = 1.5;
+        public static final double kManualShootSpinUpTimeout  = 1.0;
     }
 
     /** Agitate command */

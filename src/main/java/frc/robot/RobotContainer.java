@@ -293,6 +293,14 @@ public class RobotContainer {
             }, shooterSubsystem)
         );
 
+        driverController.x().whileTrue(
+            new StartEndCommand(
+                () -> intakeSubsystem.pivotToDown(),
+                () -> intakeSubsystem.stopPivot(),
+                intakeSubsystem
+            )
+        );
+
         // DPad left: manual shoot sequence (no alignment)
         driverController.povLeft().whileTrue(
             new SequentialCommandGroup(

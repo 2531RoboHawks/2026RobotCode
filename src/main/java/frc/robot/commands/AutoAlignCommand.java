@@ -4,8 +4,6 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
@@ -15,13 +13,16 @@ import frc.robot.subsystems.Hoodsubsystem;
 
 import static edu.wpi.first.units.Units.*;
 
-import java.util.Optional;
-
 /**
- * Rotates the bot to face a specific field coordinate target,
- * using MegaTag2 pose estimation to know where the robot is on the field.
+ * Uses MegaTag1 to get the robot's field position, picks whichever hub
+ * is closer, and rotates the front of the robot to face that hub's center.
  */
 public class AutoAlignCommand extends Command {
+
+    private static final Translation2d BLUE_HUB =
+        new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
+    private static final Translation2d RED_HUB =
+        new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
 
     private final CommandSwerveDrivetrain drivetrain;
     private final Hoodsubsystem           hood;
@@ -39,7 +40,7 @@ public class AutoAlignCommand extends Command {
         this.hood           = hood;
         this.maxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate)
                                                 .in(RadiansPerSecond);
-        addRequirements(drivetrain); // hood not required — avoids default command conflict
+        addRequirements(drivetrain);
     }
 
     @Override
@@ -52,42 +53,42 @@ public class AutoAlignCommand extends Command {
 
     @Override
     public void execute() {
-        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
+        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
             Constants.AutoAlign.kLimelightName
         );
 
-        // ── Debug output — check these on SmartDashboard ──────────────────────
         boolean poseValid = pose != null && pose.tagCount > 0;
-        SmartDashboard.putBoolean("AutoAlign/PoseValid",     poseValid);
-        SmartDashboard.putNumber("AutoAlign/TagCount",       pose != null ? pose.tagCount : -1);
-        SmartDashboard.putNumber("AutoAlign/RobotX",         pose != null ? pose.pose.getX() : -1);
-        SmartDashboard.putNumber("AutoAlign/RobotY",         pose != null ? pose.pose.getY() : -1);
-        SmartDashboard.putNumber("AutoAlign/CurrentHeading", drivetrain.getState().Pose.getRotation().getDegrees());
-
-        Translation2d target = getTargetCoordinate();
-        SmartDashboard.putNumber("AutoAlign/TargetX", target.getX());
-        SmartDashboard.putNumber("AutoAlign/TargetY", target.getY());
-        SmartDashboard.putString("AutoAlign/Alliance",
-            DriverStation.getAlliance().map(a -> a.toString()).orElse("Unknown"));
-        // ─────────────────────────────────────────────────────────────────────
+        SmartDashboard.putBoolean("AutoAlign/PoseValid", poseValid);
 
         if (!poseValid) {
-            // No valid MegaTag2 pose — brake and wait
             drivetrain.setControl(brake);
-            SmartDashboard.putNumber("AutoAlign/HeadingError", 0);
-            SmartDashboard.putString("AutoAlign/Status", "No pose — braking");
+            SmartDashboard.putString("AutoAlign/Status", "No tags — braking");
             return;
         }
 
+        // Robot position AND heading both from MegaTag1 (same coordinate frame)
         Translation2d robotPos = pose.pose.getTranslation();
+        double currentAngleDeg = pose.pose.getRotation().getDegrees();
+
+        // Pick whichever hub is closer
+        Translation2d target = robotPos.getDistance(RED_HUB) < robotPos.getDistance(BLUE_HUB)
+            ? RED_HUB : BLUE_HUB;
+
+        // Angle from robot to hub center
         double dx = target.getX() - robotPos.getX();
         double dy = target.getY() - robotPos.getY();
-        double targetAngleDeg  = Math.toDegrees(Math.atan2(dy, dx));
-        double currentAngleDeg = drivetrain.getState().Pose.getRotation().getDegrees();
-        double error           = normalizeAngle(targetAngleDeg - currentAngleDeg);
+        double targetAngleDeg = Math.toDegrees(Math.atan2(dy, dx));
 
-        SmartDashboard.putNumber("AutoAlign/TargetAngle",  targetAngleDeg);
-        SmartDashboard.putNumber("AutoAlign/HeadingError", error);
+        double error = normalizeAngle(targetAngleDeg - currentAngleDeg);
+
+        // Telemetry — check these on SmartDashboard to debug
+        SmartDashboard.putNumber("AutoAlign/RobotX",       robotPos.getX());
+        SmartDashboard.putNumber("AutoAlign/RobotY",       robotPos.getY());
+        SmartDashboard.putNumber("AutoAlign/CurrentAngle",  currentAngleDeg);
+        SmartDashboard.putNumber("AutoAlign/TargetX",       target.getX());
+        SmartDashboard.putNumber("AutoAlign/TargetY",       target.getY());
+        SmartDashboard.putNumber("AutoAlign/TargetAngle",   targetAngleDeg);
+        SmartDashboard.putNumber("AutoAlign/HeadingError",  error);
         SmartDashboard.putString("AutoAlign/Status",
             Math.abs(error) < Constants.AutoAlign.kAngleTolerance ? "Aligned!" : "Aligning...");
 
@@ -105,17 +106,19 @@ public class AutoAlignCommand extends Command {
 
     @Override
     public boolean isFinished() {
-        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
+        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
             Constants.AutoAlign.kLimelightName
         );
         if (pose == null || pose.tagCount == 0) return false;
 
-        Translation2d target   = getTargetCoordinate();
         Translation2d robotPos = pose.pose.getTranslation();
+        Translation2d target = robotPos.getDistance(RED_HUB) < robotPos.getDistance(BLUE_HUB)
+            ? RED_HUB : BLUE_HUB;
+
         double dx = target.getX() - robotPos.getX();
         double dy = target.getY() - robotPos.getY();
         double targetAngleDeg  = Math.toDegrees(Math.atan2(dy, dx));
-        double currentAngleDeg = drivetrain.getState().Pose.getRotation().getDegrees();
+        double currentAngleDeg = pose.pose.getRotation().getDegrees();
         double error           = normalizeAngle(targetAngleDeg - currentAngleDeg);
 
         return Math.abs(error) < Constants.AutoAlign.kAngleTolerance
@@ -126,33 +129,20 @@ public class AutoAlignCommand extends Command {
     public void end(boolean interrupted) {
         drivetrain.setControl(brake);
         SmartDashboard.putString("AutoAlign/Status", interrupted ? "Interrupted" : "Done");
-        // hood intentionally NOT stowed here — let the shoot pipeline finish feeding first
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private Translation2d getTargetCoordinate() {
-        Translation2d blue = new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
-        Translation2d red  = new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
-
-        Translation2d robotPos = drivetrain.getState().Pose.getTranslation();
-        double distBlue = robotPos.getDistance(blue);
-        double distRed  = robotPos.getDistance(red);
-
-        return distRed < distBlue ? red : blue;
-    }
-
     private double getDistanceToTarget() {
-        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
+        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
             Constants.AutoAlign.kLimelightName
         );
         if (pose == null || pose.tagCount == 0) return -1;
 
-        Translation2d target   = getTargetCoordinate();
         Translation2d robotPos = pose.pose.getTranslation();
-        double dx = target.getX() - robotPos.getX();
-        double dy = target.getY() - robotPos.getY();
-        return Math.sqrt(dx * dx + dy * dy);
+        Translation2d target = robotPos.getDistance(RED_HUB) < robotPos.getDistance(BLUE_HUB)
+            ? RED_HUB : BLUE_HUB;
+        return robotPos.getDistance(target);
     }
 
     private double normalizeAngle(double angleDeg) {

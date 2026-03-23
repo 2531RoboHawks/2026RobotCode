@@ -6,6 +6,7 @@ package frc.robot;
 
 import com.ctre.phoenix6.HootAutoReplay;
 
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -29,25 +30,16 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
         m_robotContainer.periodic();
 
-        // Step 1: feed gyro heading to Limelight so MegaTag2 knows which
-        // direction the robot is facing when calculating field position
-        LimelightHelpers.SetRobotOrientation(
-            Constants.AutoAlign.kLimelightName,
-            m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees(),
-            0, 0, 0, 0, 0
-        );
-
-        // Step 2: read MegaTag2 pose estimate and fuse it into the drivetrain's
-        // Kalman filter so odometry stays accurate and doesn't drift over time.
-        // This also keeps the Field widget on SmartDashboard correct and
-        // improves PathPlanner path following accuracy.
-        LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
+        // Fuse MegaTag1 vision into drivetrain (no gyro heading needed).
+        // Only fuse x,y position — theta std dev is high so gyro isn't overwritten.
+        LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(
             Constants.AutoAlign.kLimelightName
         );
-        if (mt2 != null && mt2.tagCount > 0) {
+        if (mt1 != null && mt1.tagCount > 0 && mt1.avgTagDist < 4.0) {
             m_robotContainer.drivetrain.addVisionMeasurement(
-                mt2.pose,
-                mt2.timestampSeconds
+                mt1.pose,
+                mt1.timestampSeconds,
+                VecBuilder.fill(0.5, 0.5, 999.0)
             );
         }
     }
