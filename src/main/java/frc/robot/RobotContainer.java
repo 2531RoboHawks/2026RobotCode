@@ -74,7 +74,6 @@ public class RobotContainer {
     @SuppressWarnings("unused")
     private Debug debugSubsystem;
 
-    private final GenericEntry batteryVoltageEntry;
     private final GenericEntry slowModeEntry;
     private final GenericEntry headingEntry;
     private final GenericEntry readyToShootEntry;
@@ -180,7 +179,6 @@ public class RobotContainer {
         SmartDashboard.putData("Field", drivetrain.getField());
 
         ShuffleboardTab tab = Shuffleboard.getTab("Important");
-        batteryVoltageEntry = tab.add("Battery Voltage (V)", 0).getEntry();
         slowModeEntry       = tab.add("Slow Mode Active", false).getEntry();
         headingEntry        = tab.add("Robot Heading (deg)", 0).getEntry();
         readyToShootEntry   = tab.add("Ready to Shoot", false).getEntry();
@@ -412,7 +410,6 @@ public class RobotContainer {
     }
 
     public void periodic() {
-        batteryVoltageEntry.setDouble(RobotController.getBatteryVoltage());
         slowModeEntry.setBoolean(driverController.leftTrigger().getAsBoolean());
         headingEntry.setDouble(drivetrain.getState().Pose.getRotation().getDegrees());
 
