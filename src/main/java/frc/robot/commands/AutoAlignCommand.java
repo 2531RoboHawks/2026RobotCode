@@ -35,6 +35,8 @@ public class AutoAlignCommand extends Command {
 
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
 
+    private double previousError = 0.0;
+
     public AutoAlignCommand(CommandSwerveDrivetrain drivetrain, Hoodsubsystem hood) {
         this.drivetrain     = drivetrain;
         this.hood           = hood;
@@ -45,6 +47,7 @@ public class AutoAlignCommand extends Command {
 
     @Override
     public void initialize() {
+        previousError = 0.0;
         double dist = getDistanceToTarget();
         if (dist > 0) {
             hood.setFromDistance(dist);
@@ -79,7 +82,7 @@ public class AutoAlignCommand extends Command {
         double dy = target.getY() - robotPos.getY();
         double targetAngleDeg = Math.toDegrees(Math.atan2(dy, dx));
 
-        double error = normalizeAngle(targetAngleDeg - currentAngleDeg);
+        double error = normalizeAngle(targetAngleDeg - currentAngleDeg + Constants.AutoAlign.kHeadingOffset);
 
         // Telemetry — check these on SmartDashboard to debug
         SmartDashboard.putNumber("AutoAlign/RobotX",       robotPos.getX());
@@ -92,11 +95,23 @@ public class AutoAlignCommand extends Command {
         SmartDashboard.putString("AutoAlign/Status",
             Math.abs(error) < Constants.AutoAlign.kAngleTolerance ? "Aligned!" : "Aligning...");
 
+        // PD control with deadband to prevent jitter
+        double rotationOutput;
+        if (Math.abs(error) < Constants.AutoAlign.kRotateDeadband) {
+            rotationOutput = 0.0;
+        } else {
+            double derivative = (error - previousError) / 0.02; // 20ms loop
+            rotationOutput = (error * Constants.AutoAlign.kRotateKP
+                            + derivative * Constants.AutoAlign.kRotateKD)
+                            * maxAngularRate;
+        }
+        previousError = error;
+
         drivetrain.setControl(
             rotateRequest
                 .withVelocityX(0)
                 .withVelocityY(0)
-                .withRotationalRate(error * Constants.AutoAlign.kRotateKP * maxAngularRate)
+                .withRotationalRate(rotationOutput)
         );
 
         double dist = Math.sqrt(dx * dx + dy * dy);
@@ -133,7 +148,7 @@ public class AutoAlignCommand extends Command {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private double getDistanceToTarget() {
+    public static double getDistanceToTarget() {
         LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
             Constants.AutoAlign.kLimelightName
         );

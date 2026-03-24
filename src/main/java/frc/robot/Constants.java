@@ -58,7 +58,8 @@ public final class Constants {
         public static final double kOpenLoopRampPeriod = 2.0; // seconds to ramp to full speed (0.5–3.0)
         public static final double kP                  = 0.6; // velocity correction strength (0.1–1.0)
         public static final double kV                  = 0.10; // velocity FF, volts per rot/s (0.05–0.15)
-        public static final double kShooterVelocity    = 43.0; // target speed in rot/s (30–60) //potter wants to test lower for pop shot
+        public static final double kShooterVelocity    = 43.0; // target speed in rot/s (30–60)
+        public static final double kPopShotVelocity   = 29.0; // close-range pop shot speed
     }
 
     /** Sorter subsystem */
@@ -94,6 +95,9 @@ public final class Constants {
         // kMaxRotations: drive hood to physical max, read Hood/CurrentRotations, set that here
         public static final double kMinRotations = 0.0;
         public static final double kMaxRotations = 2.0; // ← tune this
+
+        // Hood position for pop shots (mechanism rotations) — slight angle for close range
+        public static final double kPopShotHood = 0.12;
 
         // How close (mechanism rotations) the hood must be to count as at goal
         public static final double kAtGoalTolerance = 0.05;
@@ -136,11 +140,16 @@ public final class Constants {
         //   3.0          | 2.5   (medium)
         //   4.0          | 4.5   (far)
         //   5.0          | 7.0   (very far)
+        // TODO: need to fix limelight position
+        // Known good: ~3.45m → 0.04 rotations
         public static final double[][] kDistToHood = {
-            { 2.0, 0.037 },
-            { 3.0, 0.05 },
-            { 4.0, 0.1 },
-            { 5.0, 0.12 },
+            { 1.0, 0.0 },    // very close — hood flat
+            { 2.0, 0.0 },    // close — hood flat
+            { 3.0, 0.03 },   // medium
+            { 3.5, 0.04 },   // tested value
+            { 4.0, 0.055 },  // far — tune on robot
+            { 5.0, 0.08 },   // very far — tune on robot
+            { 6.0, 0.10 },   // max range — tune on robot
         };
     }
 
@@ -150,11 +159,25 @@ public final class Constants {
         public static final String kLimelightName = "limelight-temp";
 
         // Proportional gain for rotation — increase if sluggish, decrease if oscillates
-        public static final double kRotateKP = 0.02; // rotation correction strength (0.005–0.05)
+        public static final double kRotateKP = 0.015; // rotation correction strength (0.005–0.05)
+
+        // Derivative gain for rotation — dampens oscillation / jitter
+        public static final double kRotateKD = 0.002;
+
+        // Degrees of heading error below which rotation output is zeroed (stops jitter)
+        public static final double kRotateDeadband = 1.0;
+
+        // TODO: need to fix limelight position
+        // Heading offset in degrees — positive = aim further left, negative = aim further right
+        // Compensates for limelight being physically misaligned from robot center
+        public static final double kHeadingOffset = 9.0; // ← tune on robot (limelight was moved, shooting right — positive shifts aim left)
 
         // Degrees of heading error that counts as "aligned"
         // Looser = faster. Tighter = more accurate.
         public static final double kAngleTolerance = 2.0; // degrees of allowed error (1–5)
+
+        // Distance (meters) below which a pop shot is used instead of full alignment
+        public static final double kPopShotDistance = 2.5;
 
         // Blue alliance shooting target (meters, WPILib field coordinates)
         public static final double kBlueTargetX = 4.621;

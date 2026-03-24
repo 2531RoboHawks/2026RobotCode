@@ -36,6 +36,7 @@ import frc.robot.subsystems.CandleSubsystem.CandleState;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.ParallelDeadlineGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
@@ -169,6 +170,19 @@ public class RobotContainer {
             )
         );
 
+        // Pop shot — close-range quick shot, hood stays flat (stowed), no alignment
+        NamedCommands.registerCommand("PopShot",
+            new SequentialCommandGroup(
+                new InstantCommand(() -> Hoodsubsystem.stow(), Hoodsubsystem),
+                new ParallelDeadlineGroup(
+                    new FeedBallCommand(sorterSubsystem, feederSubsystem)
+                        .withTimeout(Constants.Timeouts.kFeedBallTimeout),
+                    new SpinShooterCommand(shooterSubsystem)
+                ),
+                new InstantCommand(() -> shooterSubsystem.stopShooter(), shooterSubsystem)
+            )
+        );
+
         NamedCommands.registerCommand("Wait1s", Commands.waitSeconds(1.0));
         NamedCommands.registerCommand("Wait2s", Commands.waitSeconds(2.0));
         NamedCommands.registerCommand("Wait3s", Commands.waitSeconds(3.0));
@@ -190,8 +204,55 @@ public class RobotContainer {
     }
 
     // ── Right bumper: full shoot pipeline ─────────────────────────────────────
+    // If close enough, does a pop shot (hood flat, no align). Otherwise full align + shoot.
     // Feed stage has NO timeout — runs until driver releases right bumper
     private Command buildShootPipeline() {
+        return new ConditionalCommand(
+            // Close range: pop shot — hood flat, skip alignment, just spin + feed
+            buildPopShotPipeline(),
+            // Far range: full align + shoot
+            buildAlignShootPipeline(),
+            // Condition: is the robot close to the target?
+            () -> {
+                double dist = AutoAlignCommand.getDistanceToTarget();
+                return dist > 0 && dist < Constants.AutoAlign.kPopShotDistance;
+            }
+        );
+    }
+
+    private Command buildPopShotPipeline() {
+        return new ParallelDeadlineGroup(
+            new StartEndCommand(
+                () -> {
+                    sorterSubsystem.runSorterMotor();
+                    feederSubsystem.runFeederMotor();
+                    shooterSubsystem.runPopShotMotor();
+                    candleSubsystem.setState(CandleState.SHOOTING);
+                    noBallTimer.reset();
+                    noBallTimer.start();
+                    feederWasRunning = true;
+                },
+                () -> {
+                    sorterSubsystem.stop();
+                    feederSubsystem.stop();
+                    shooterSubsystem.stopShooter();
+                    Hoodsubsystem.stow();
+                    noBallTimer.stop();
+                    feederWasRunning = false;
+                    candleSubsystem.setState(CandleState.DEFAULT);
+                },
+                sorterSubsystem, feederSubsystem, shooterSubsystem
+            ),
+            // Continuously hold hood at pop shot position
+            new RunCommand(
+                () -> Hoodsubsystem.setPosition(Constants.Hood.kPopShotHood),
+                Hoodsubsystem
+            ),
+            new RunCommand(() -> drivetrain.setControl(brake), drivetrain)
+        );
+    }
+
+    private Command buildAlignShootPipeline() {
         return new SequentialCommandGroup(
             // Phase 1: align + spin up shooter in parallel
             new ParallelDeadlineGroup(
@@ -203,7 +264,7 @@ public class RobotContainer {
                         candleSubsystem.setState(CandleState.ALIGNING);
                     },
                     () -> {}, // shooter intentionally kept running into phase 2
-                    shooterSubsystem // ← candleSubsystem removed, no requirement conflict
+                    shooterSubsystem
                 )
             ),
             // Phase 2: feed + hold drivetrain in brake — no timeout, runs until button released
@@ -221,15 +282,14 @@ public class RobotContainer {
                     () -> {
                         sorterSubsystem.stop();
                         feederSubsystem.stop();
-                        shooterSubsystem.stopShooter(); // ← guaranteed to run on release
+                        shooterSubsystem.stopShooter();
                         Hoodsubsystem.stow();
                         noBallTimer.stop();
                         feederWasRunning = false;
                         candleSubsystem.setState(CandleState.DEFAULT);
                     },
-                    sorterSubsystem, feederSubsystem, shooterSubsystem // hood not required
+                    sorterSubsystem, feederSubsystem, shooterSubsystem
                 ),
-                // Keep drivetrain locked so default command doesn't take over
                 new RunCommand(() -> drivetrain.setControl(brake), drivetrain)
             )
         );

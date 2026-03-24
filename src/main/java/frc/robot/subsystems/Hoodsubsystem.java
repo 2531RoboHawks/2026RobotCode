@@ -50,13 +50,28 @@ public class Hoodsubsystem extends SubsystemBase {
 
         // Zero encoder at startup — robot must start with hood at minimum position
         hoodMotor.setPosition(0.0);
+
+        // Initialize capture button on SmartDashboard
+        SmartDashboard.putBoolean("Hood/Capture", false);
+        SmartDashboard.putString("Hood/Snapshot", "");
     }
 
     @Override
     public void periodic() {
+        double current = getCurrentRotations();
+        double motorRot = current * Constants.Hood.kGearRatio;
         SmartDashboard.putNumber("Hood/TargetRotations",  targetRotations);
-        SmartDashboard.putNumber("Hood/CurrentRotations", getCurrentRotations());
+        SmartDashboard.putNumber("Hood/CurrentRotations", current);
         SmartDashboard.putBoolean("Hood/AtGoal",          isAtGoal());
+        SmartDashboard.putNumber("Hood/MotorRotations",   motorRot);
+
+        // Press this button on SmartDashboard to snapshot current values to driver station console
+        if (SmartDashboard.getBoolean("Hood/Capture", false)) {
+            SmartDashboard.putBoolean("Hood/Capture", false);
+            String snap = "MotorRotation:" + motorRot + " CurrentRotation:" + current + " Target:" + targetRotations;
+            System.out.println(snap);
+            SmartDashboard.putString("Hood/Snapshot", snap);
+        }
     }
 
     /**

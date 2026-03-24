@@ -67,6 +67,11 @@ public class shooter extends SubsystemBase {
         shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kShooterVelocity));
     }
 
+    // Higher velocity for close-range pop shots
+    public void runPopShotMotor() {
+        shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kPopShotVelocity));
+    }
+
     // Stops the shooter motor
     public void stopShooter() {
         shooterMotor.set(0);
