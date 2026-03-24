@@ -59,7 +59,7 @@ public final class Constants {
         public static final double kP                  = 0.6; // velocity correction strength (0.1–1.0)
         public static final double kV                  = 0.10; // velocity FF, volts per rot/s (0.05–0.15)
         public static final double kShooterVelocity    = 43.0; // target speed in rot/s (30–60)
-        public static final double kPopShotVelocity   = 29.0; // close-range pop shot speed
+        public static final double kPopShotVelocity   = 37.0; // close-range pop shot speed
     }
 
     /** Sorter subsystem */
@@ -97,7 +97,7 @@ public final class Constants {
         public static final double kMaxRotations = 2.0; // ← tune this
 
         // Hood position for pop shots (mechanism rotations) — slight angle for close range
-        public static final double kPopShotHood = 0.12;
+        public static final double kPopShotHood = 0.04;
 
         // How close (mechanism rotations) the hood must be to count as at goal
         public static final double kAtGoalTolerance = 0.05;
@@ -143,8 +143,11 @@ public final class Constants {
         // TODO: need to fix limelight position
         // Known good: ~3.45m → 0.04 rotations
         public static final double[][] kDistToHood = {
-            { 1.0, 0.0 },    // very close — hood flat
-            { 2.0, 0.0 },    // close — hood flat
+            { 1.0, 0.00 },    // very close — tune on robot
+            { 1.5, 0.00 },   // close — tune on robot
+            { 2.0, 0.00 },    // close — tune on robot
+            { 2.2, 0.00 },   // tested value
+            { 2.5, 0.00 },   // pop shot range — tune on robot
             { 3.0, 0.03 },   // medium
             { 3.5, 0.04 },   // tested value
             { 4.0, 0.055 },  // far — tune on robot
@@ -177,7 +180,7 @@ public final class Constants {
         public static final double kAngleTolerance = 2.0; // degrees of allowed error (1–5)
 
         // Distance (meters) below which a pop shot is used instead of full alignment
-        public static final double kPopShotDistance = 2.5;
+        public static final double kPopShotDistance = 3.2;
 
         // Blue alliance shooting target (meters, WPILib field coordinates)
         public static final double kBlueTargetX = 4.621;

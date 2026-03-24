@@ -27,6 +27,7 @@ public class AutoAlignCommand extends Command {
     private final CommandSwerveDrivetrain drivetrain;
     private final Hoodsubsystem           hood;
     private final double                  maxAngularRate;
+    private final boolean                 controlHood;
 
     private final SwerveRequest.FieldCentric rotateRequest = new SwerveRequest.FieldCentric()
         .withDeadband(0)
@@ -38,8 +39,14 @@ public class AutoAlignCommand extends Command {
     private double previousError = 0.0;
 
     public AutoAlignCommand(CommandSwerveDrivetrain drivetrain, Hoodsubsystem hood) {
+        this(drivetrain, hood, true);
+    }
+
+    /** @param controlHood false to skip hood adjustment (e.g. pop shot sets hood separately) */
+    public AutoAlignCommand(CommandSwerveDrivetrain drivetrain, Hoodsubsystem hood, boolean controlHood) {
         this.drivetrain     = drivetrain;
         this.hood           = hood;
+        this.controlHood    = controlHood;
         this.maxAngularRate = RotationsPerSecond.of(Constants.Swerve.kMaxAngularRate)
                                                 .in(RadiansPerSecond);
         addRequirements(drivetrain);
@@ -48,9 +55,11 @@ public class AutoAlignCommand extends Command {
     @Override
     public void initialize() {
         previousError = 0.0;
-        double dist = getDistanceToTarget();
-        if (dist > 0) {
-            hood.setFromDistance(dist);
+        if (controlHood) {
+            double dist = getDistanceToTarget();
+            if (dist > 0) {
+                hood.setFromDistance(dist);
+            }
         }
     }
 
@@ -116,7 +125,9 @@ public class AutoAlignCommand extends Command {
 
         double dist = Math.sqrt(dx * dx + dy * dy);
         SmartDashboard.putNumber("AutoAlign/DistanceMeters", dist);
-        hood.setFromDistance(dist);
+        if (controlHood) {
+            hood.setFromDistance(dist);
+        }
     }
 
     @Override

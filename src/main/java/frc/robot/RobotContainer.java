@@ -221,34 +221,41 @@ public class RobotContainer {
     }
 
     private Command buildPopShotPipeline() {
-        return new ParallelDeadlineGroup(
-            new StartEndCommand(
-                () -> {
-                    sorterSubsystem.runSorterMotor();
-                    feederSubsystem.runFeederMotor();
+        return new SequentialCommandGroup(
+            // Phase 1: auto-align (with hood from distance table) + spin up pop shot velocity
+            new ParallelDeadlineGroup(
+                new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                    .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
+                new RunCommand(() -> {
                     shooterSubsystem.runPopShotMotor();
-                    candleSubsystem.setState(CandleState.SHOOTING);
-                    noBallTimer.reset();
-                    noBallTimer.start();
-                    feederWasRunning = true;
-                },
-                () -> {
-                    sorterSubsystem.stop();
-                    feederSubsystem.stop();
-                    shooterSubsystem.stopShooter();
-                    Hoodsubsystem.stow();
-                    noBallTimer.stop();
-                    feederWasRunning = false;
-                    candleSubsystem.setState(CandleState.DEFAULT);
-                },
-                sorterSubsystem, feederSubsystem, shooterSubsystem
+                    candleSubsystem.setState(CandleState.ALIGNING);
+                }, shooterSubsystem)
             ),
-            // Continuously hold hood at pop shot position
-            new RunCommand(
-                () -> Hoodsubsystem.setPosition(Constants.Hood.kPopShotHood),
-                Hoodsubsystem
-            ),
-            new RunCommand(() -> drivetrain.setControl(brake), drivetrain)
+            // Phase 2: feed while holding brake — runs until button released
+            new ParallelDeadlineGroup(
+                new StartEndCommand(
+                    () -> {
+                        sorterSubsystem.runSorterMotor();
+                        feederSubsystem.runFeederMotor();
+                        shooterSubsystem.runPopShotMotor();
+                        candleSubsystem.setState(CandleState.SHOOTING);
+                        noBallTimer.reset();
+                        noBallTimer.start();
+                        feederWasRunning = true;
+                    },
+                    () -> {
+                        sorterSubsystem.stop();
+                        feederSubsystem.stop();
+                        shooterSubsystem.stopShooter();
+                        Hoodsubsystem.stow();
+                        noBallTimer.stop();
+                        feederWasRunning = false;
+                        candleSubsystem.setState(CandleState.DEFAULT);
+                    },
+                    sorterSubsystem, feederSubsystem, shooterSubsystem
+                ),
+                new RunCommand(() -> drivetrain.setControl(brake), drivetrain)
+            )
         );
     }
 
