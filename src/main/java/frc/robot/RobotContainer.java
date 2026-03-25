@@ -480,6 +480,9 @@ public class RobotContainer {
                 feederSubsystem.stop();
             }, sorterSubsystem, feederSubsystem)
         );
+
+        // Left bumper: hood homing (pits only — press once, runs automatically)
+        secondController.leftBumper().onTrue(Hoodsubsystem.homeCommand());
     }
 
     public void periodic() {

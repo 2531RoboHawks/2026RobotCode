@@ -104,6 +104,14 @@ public final class Constants {
         // How close (mechanism rotations) the hood must be to count as at goal
         public static final double kAtGoalTolerance = 0.05;
 
+        // ── Homing ──────────────────────────────────────────────────────────────
+        public static final double kHomingSpeed = -0.05; // slow down speed (negative = toward hard stop)
+        public static final double kHomingCurrentThreshold = 5.0; // amps indicating hard stop
+        public static final int    kHomingStallLoops = 5; // consecutive loops above threshold to confirm
+        // After hitting the hard stop, drive forward this many mechanism rotations before zeroing
+        // Use this if the hard stop isn't exactly where you want 0 to be
+        public static final double kHomingZeroOffset = 0.0; // mechanism rotations past hard stop
+
         // ── Motion Magic ──────────────────────────────────────────────────────
         // CruiseVelocity: max speed in mechanism rot/s — increase for faster movement
         // Acceleration:   how quickly it reaches cruise — increase for snappier start
@@ -147,13 +155,13 @@ public final class Constants {
         public static final double[][] kDistToHood = {
             { 1.0, 0.00 },    // very close — tune on robot
             { 1.5, 0.00 },    // close — tune on robot
-            { 2.3, 0.00 },    // tested — good
-            { 2.8, 0.09 },    // tested — good
-            { 3.0, 0.09 },    // tested — good
-            { 3.5, 0.22 },    // tested — good
-            { 3.7, 0.55 },    // tested — good
-            { 4.0, 0.70 },    // extrapolated — tune on robot
-            { 5.0, 1.00 },    // extrapolated — tune on robot
+            { 2.3, 0.00 },    // tested — lowered
+            { 2.8, 0.06 },    // tested — lowered
+            { 3.0, 0.06 },    // tested — lowered
+            { 3.5, 0.16 },    // tested — lowered
+            { 3.7, 0.45 },    // tested — lowered
+            { 4.0, 0.60 },    // extrapolated — lowered
+            { 5.0, 0.85 },    // extrapolated — lowered
             { 6.0, 1.30 },    // extrapolated — tune on robot
         };
     }

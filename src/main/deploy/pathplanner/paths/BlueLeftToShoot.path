@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.910454545454545,
-        "y": 7.992818181818182
+        "x": 2.0240681818181816,
+        "y": 7.43625
       },
       "isLocked": false,
       "linkedName": "BlueLeftStart"
@@ -20,8 +20,8 @@
         "y": 6.694159090909091
       },
       "prevControl": {
-        "x": 1.0552272727272725,
-        "y": 7.137352272727274
+        "x": 2.0756022727272727,
+        "y": 6.951829545454546
       },
       "nextControl": null,
       "isLocked": false,
@@ -47,8 +47,8 @@
   "reversed": false,
   "folder": null,
   "idealStartingState": {
-    "velocity": 0,
-    "rotation": 0.0
+    "velocity": 0.0,
+    "rotation": -90.0
   },
   "useDefaultConstraints": true
 }

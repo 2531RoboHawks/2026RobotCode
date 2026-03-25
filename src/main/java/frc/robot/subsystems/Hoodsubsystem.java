@@ -1,11 +1,14 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
@@ -110,6 +113,68 @@ public class Hoodsubsystem extends SubsystemBase {
     // Alias used by RobotContainer for manual dpad adjustment
     public double getTargetPosition() {
         return targetRotations;
+    }
+
+    // ── Homing ────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a command that slowly drives the hood down until it stalls,
+     * then zeros the encoder. Press once in the pits — do NOT run during a match.
+     */
+    public Command homeCommand() {
+        final int[] stallCount = {0};
+        final DutyCycleOut homingControl = new DutyCycleOut(0);
+
+        return runEnd(
+            () -> {
+                // Drive slowly toward hard stop
+                hoodMotor.setControl(homingControl.withOutput(Constants.Hood.kHomingSpeed));
+
+                double current = hoodMotor.getStatorCurrent().getValueAsDouble();
+                SmartDashboard.putNumber("Hood/HomingCurrent", current);
+
+                if (current > Constants.Hood.kHomingCurrentThreshold) {
+                    stallCount[0]++;
+                } else {
+                    stallCount[0] = 0;
+                }
+
+                if (stallCount[0] >= Constants.Hood.kHomingStallLoops) {
+                    // We hit the hard stop — set position so that the offset point becomes 0
+                    hoodMotor.setControl(homingControl.withOutput(0));
+                    hoodMotor.setPosition(-Constants.Hood.kHomingZeroOffset);
+                    targetRotations = 0.0;
+                    SmartDashboard.putString("Hood/HomeStatus", "Homed!");
+                    System.out.println("Hood homed at offset " + Constants.Hood.kHomingZeroOffset);
+                }
+            },
+            () -> {
+                // End: stop motor, reset stall counter
+                hoodMotor.setControl(homingControl.withOutput(0));
+                stallCount[0] = 0;
+            }
+        ).until(() -> stallCount[0] >= Constants.Hood.kHomingStallLoops)
+         .beforeStarting(() -> {
+            // Disable reverse soft limit so we can drive past 0
+            SoftwareLimitSwitchConfigs softCfg = new SoftwareLimitSwitchConfigs();
+            softCfg.ReverseSoftLimitEnable = false;
+            softCfg.ForwardSoftLimitEnable = true;
+            softCfg.ForwardSoftLimitThreshold = Constants.Hood.kMaxRotations;
+            hoodMotor.getConfigurator().apply(softCfg);
+            stallCount[0] = 0;
+            SmartDashboard.putString("Hood/HomeStatus", "Homing...");
+         })
+         .finallyDo((interrupted) -> {
+            // Re-enable reverse soft limit
+            SoftwareLimitSwitchConfigs softCfg = new SoftwareLimitSwitchConfigs();
+            softCfg.ReverseSoftLimitEnable = true;
+            softCfg.ReverseSoftLimitThreshold = Constants.Hood.kMinRotations;
+            softCfg.ForwardSoftLimitEnable = true;
+            softCfg.ForwardSoftLimitThreshold = Constants.Hood.kMaxRotations;
+            hoodMotor.getConfigurator().apply(softCfg);
+            SmartDashboard.putString("Hood/HomeStatus",
+                interrupted ? "Homing interrupted" : "Homed!");
+         });
     }
 
     // ── Interpolation ─────────────────────────────────────────────────────────
