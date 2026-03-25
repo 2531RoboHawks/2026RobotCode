@@ -261,18 +261,19 @@ public class RobotContainer {
 
     private Command buildAlignShootPipeline() {
         return new SequentialCommandGroup(
-            // Phase 1: align + spin up shooter in parallel
+            // Phase 1: align + spin up shooter in parallel (long-range if >4m)
             new ParallelDeadlineGroup(
                 new AutoAlignCommand(drivetrain, Hoodsubsystem)
                     .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
-                new StartEndCommand(
-                    () -> {
+                new RunCommand(() -> {
+                    double dist = AutoAlignCommand.getDistanceToTarget();
+                    if (dist > Constants.Shooter.kLongRangeDistance) {
+                        shooterSubsystem.runLongRangeMotor();
+                    } else {
                         shooterSubsystem.runShooterMotor();
-                        candleSubsystem.setState(CandleState.ALIGNING);
-                    },
-                    () -> {}, // shooter intentionally kept running into phase 2
-                    shooterSubsystem
-                )
+                    }
+                    candleSubsystem.setState(CandleState.ALIGNING);
+                }, shooterSubsystem)
             ),
             // Phase 2: feed + hold drivetrain in brake — no timeout, runs until button released
             new ParallelDeadlineGroup(
@@ -280,7 +281,12 @@ public class RobotContainer {
                     () -> {
                         sorterSubsystem.runSorterMotor();
                         feederSubsystem.runFeederMotor();
-                        shooterSubsystem.runShooterMotor();
+                        double dist = AutoAlignCommand.getDistanceToTarget();
+                        if (dist > Constants.Shooter.kLongRangeDistance) {
+                            shooterSubsystem.runLongRangeMotor();
+                        } else {
+                            shooterSubsystem.runShooterMotor();
+                        }
                         candleSubsystem.setState(CandleState.SHOOTING);
                         noBallTimer.reset();
                         noBallTimer.start();

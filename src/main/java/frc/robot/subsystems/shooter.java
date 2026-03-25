@@ -72,6 +72,11 @@ public class shooter extends SubsystemBase {
         shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kPopShotVelocity));
     }
 
+    // Long-range velocity for shots >4m
+    public void runLongRangeMotor() {
+        shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kLongRangeVelocity));
+    }
+
     // Stops the shooter motor
     public void stopShooter() {
         shooterMotor.set(0);

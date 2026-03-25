@@ -60,6 +60,8 @@ public final class Constants {
         public static final double kV                  = 0.10; // velocity FF, volts per rot/s (0.05–0.15)
         public static final double kShooterVelocity    = 43.0; // target speed in rot/s (30–60)
         public static final double kPopShotVelocity   = 37.0; // close-range pop shot speed
+        public static final double kLongRangeVelocity = 50.0; // long-range speed (>4m)
+        public static final double kLongRangeDistance  = 4.0;  // distance threshold for long-range velocity
     }
 
     /** Sorter subsystem */
@@ -141,18 +143,18 @@ public final class Constants {
         //   4.0          | 4.5   (far)
         //   5.0          | 7.0   (very far)
         // TODO: need to fix limelight position
-        // Known good: ~3.45m → 0.04 rotations
+        // Known good: 2.3m → 0.00, 2.9m → 0.05, 3.5m → 0.22
         public static final double[][] kDistToHood = {
             { 1.0, 0.00 },    // very close — tune on robot
-            { 1.5, 0.00 },   // close — tune on robot
-            { 2.0, 0.00 },    // close — tune on robot
-            { 2.2, 0.00 },   // tested value
-            { 2.5, 0.00 },   // pop shot range — tune on robot
-            { 3.0, 0.03 },   // medium
-            { 3.5, 0.04 },   // tested value
-            { 4.0, 0.055 },  // far — tune on robot
-            { 5.0, 0.08 },   // very far — tune on robot
-            { 6.0, 0.10 },   // max range — tune on robot
+            { 1.5, 0.00 },    // close — tune on robot
+            { 2.3, 0.00 },    // tested — good
+            { 2.8, 0.09 },    // tested — good
+            { 3.0, 0.09 },    // tested — good
+            { 3.5, 0.22 },    // tested — good
+            { 3.7, 0.55 },    // tested — good
+            { 4.0, 0.70 },    // extrapolated — tune on robot
+            { 5.0, 1.00 },    // extrapolated — tune on robot
+            { 6.0, 1.30 },    // extrapolated — tune on robot
         };
     }
 
