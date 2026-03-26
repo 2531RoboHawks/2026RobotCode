@@ -54,7 +54,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     new PIDConstants(Constants.Swerve.kRotationP, Constants.Swerve.kRotationI, Constants.Swerve.kRotationD)
                 ),
                 config,
-                () -> DriverStation.getAlliance().orElse(Alliance.Red) == Alliance.Red,
+                () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
                 this
             );
         } catch (Exception e) {

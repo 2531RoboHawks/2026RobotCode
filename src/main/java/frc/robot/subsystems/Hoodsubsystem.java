@@ -7,10 +7,12 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.LimelightHelpers;
 
 public class Hoodsubsystem extends SubsystemBase {
 
@@ -68,12 +70,10 @@ public class Hoodsubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Hood/AtGoal",          isAtGoal());
         SmartDashboard.putNumber("Hood/MotorRotations",   motorRot);
 
-        // Press this button on SmartDashboard to snapshot current values to driver station console
+        // Press this button on SmartDashboard to snapshot auto-align tuning data
         if (SmartDashboard.getBoolean("Hood/Capture", false)) {
             SmartDashboard.putBoolean("Hood/Capture", false);
-            String snap = "MotorRotation:" + motorRot + " CurrentRotation:" + current + " Target:" + targetRotations;
-            System.out.println(snap);
-            SmartDashboard.putString("Hood/Snapshot", snap);
+            captureAutoAlignData();
         }
     }
 
@@ -113,6 +113,66 @@ public class Hoodsubsystem extends SubsystemBase {
     // Alias used by RobotContainer for manual dpad adjustment
     public double getTargetPosition() {
         return targetRotations;
+    }
+
+    // ── Auto-Align Data Capture ─────────────────────────────────────────────
+
+    private static final Translation2d BLUE_HUB =
+        new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
+    private static final Translation2d RED_HUB =
+        new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
+
+    /**
+     * Snapshots all relevant auto-align tuning data to the console and SmartDashboard.
+     * Call from SmartDashboard capture button or operator right trigger.
+     */
+    public void captureAutoAlignData() {
+        double hoodCurrent = getCurrentRotations();
+        double hoodMotorRot = hoodCurrent * Constants.Hood.kGearRatio;
+
+        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
+            Constants.AutoAlign.kLimelightName
+        );
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n=== AUTO-ALIGN CAPTURE ===\n");
+
+        if (pose == null || pose.tagCount == 0) {
+            sb.append("Limelight: NO TAGS DETECTED\n");
+        } else {
+            Translation2d robotPos = pose.pose.getTranslation();
+            double headingDeg = pose.pose.getRotation().getDegrees();
+
+            Translation2d target = robotPos.getDistance(RED_HUB) < robotPos.getDistance(BLUE_HUB)
+                ? RED_HUB : BLUE_HUB;
+            String alliance = target.equals(RED_HUB) ? "RED" : "BLUE";
+
+            double dx = target.getX() - robotPos.getX();
+            double dy = target.getY() - robotPos.getY();
+            double targetAngleDeg = Math.toDegrees(Math.atan2(dy, dx));
+            double error = targetAngleDeg - headingDeg + Constants.AutoAlign.kHeadingOffset;
+            while (error > 180)  error -= 360;
+            while (error <= -180) error += 360;
+            double distance = Math.sqrt(dx * dx + dy * dy);
+
+            sb.append(String.format("Robot: X=%.3f Y=%.3f Heading=%.1f°\n", robotPos.getX(), robotPos.getY(), headingDeg));
+            sb.append(String.format("Target: X=%.3f Y=%.3f (%s)\n", target.getX(), target.getY(), alliance));
+            sb.append(String.format("TargetAngle=%.1f° HeadingError=%.1f°\n", targetAngleDeg, error));
+            sb.append(String.format("Distance=%.3fm\n", distance));
+            sb.append(String.format("TagCount=%d\n", pose.tagCount));
+        }
+
+        sb.append(String.format("Hood: Current=%.4f Target=%.4f Motor=%.2f AtGoal=%b\n",
+            hoodCurrent, targetRotations, hoodMotorRot, isAtGoal()));
+        sb.append(String.format("PD: kP=%.4f kD=%.4f Offset=%.1f° Deadband=%.1f° Tolerance=%.1f°\n",
+            Constants.AutoAlign.kRotateKP, Constants.AutoAlign.kRotateKD,
+            Constants.AutoAlign.kHeadingOffset, Constants.AutoAlign.kRotateDeadband,
+            Constants.AutoAlign.kAngleTolerance));
+        sb.append("===========================");
+
+        String snap = sb.toString();
+        System.out.println(snap);
+        SmartDashboard.putString("Hood/Snapshot", snap);
     }
 
     // ── Homing ────────────────────────────────────────────────────────────────

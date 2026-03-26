@@ -145,7 +145,7 @@ public class AutoAlignCommand extends Command {
         double dy = target.getY() - robotPos.getY();
         double targetAngleDeg  = Math.toDegrees(Math.atan2(dy, dx));
         double currentAngleDeg = pose.pose.getRotation().getDegrees();
-        double error           = normalizeAngle(targetAngleDeg - currentAngleDeg);
+        double error           = normalizeAngle(targetAngleDeg - currentAngleDeg + Constants.AutoAlign.kHeadingOffset);
 
         return Math.abs(error) < Constants.AutoAlign.kAngleTolerance
             && hood.isAtGoal();

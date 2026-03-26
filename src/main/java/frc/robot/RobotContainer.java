@@ -481,6 +481,11 @@ public class RobotContainer {
             }, sorterSubsystem, feederSubsystem)
         );
 
+        // Right trigger: capture auto-align tuning data snapshot
+        secondController.rightTrigger().onTrue(
+            new InstantCommand(() -> Hoodsubsystem.captureAutoAlignData())
+        );
+
         // Left bumper: hood homing (pits only — press once, runs automatically)
         secondController.leftBumper().onTrue(Hoodsubsystem.homeCommand());
     }

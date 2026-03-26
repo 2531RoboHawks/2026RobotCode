@@ -26,3 +26,6 @@
 | B Button | Reverse feeder + sorter (hold) |
 | D-Pad Up | Hood flap up (manual) |
 | D-Pad Down | Hood flap down (manual) |
+|Right bumper|Zero hood|
+
+

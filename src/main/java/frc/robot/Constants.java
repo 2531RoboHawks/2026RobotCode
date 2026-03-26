@@ -11,7 +11,7 @@ public final class Constants {
         public static final double kMaxSpeedMultiplier = 1.0; // full-speed scale (0–1)
         public static final double kMaxAngularRate     = 1.25; // max turn speed in rot/s (0.75–2.0)
         public static final double kDeadbandPercent    = 0.1; // joystick deadzone % (0.05–0.15)
-        public static final double kSlowModeMultiplier = 0.14; // slow mode speed scale (0.15–0.35)
+        public static final double kSlowModeMultiplier = 0.30; // slow mode speed scale (0.15–0.35)
 
         public static final double kTranslationP = 5.0; // auto path position correction (1–10)
         public static final double kTranslationI = 0.0;
