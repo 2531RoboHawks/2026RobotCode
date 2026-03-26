@@ -33,8 +33,8 @@ public final class Constants {
         public static final double kSteerV = 2.66; // velocity FF (1.5–3.5)
         public static final double kSteerA = 0.0; // accel FF (usually 0)
 
-        public static final double kDriveCurrentLimit = 60.0; // drive motor amps cap (40–80)
-        public static final double kSteerCurrentLimit = 60.0; // steer motor amps cap (20–60)
+        public static final double kDriveCurrentLimit = 50.0; // drive motor amps cap (40–80)
+        public static final double kSteerCurrentLimit = 50.0; // steer motor amps cap (20–60)
         public static final double kSlipCurrent       = 70.0; // traction control limit amps (60–120)
     }
 
