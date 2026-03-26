@@ -47,7 +47,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 public class RobotContainer {
 
     private final SendableChooser<Command> autoChooser;
-
+    //private final Telemetry logger=new Telemetry(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond));
     private final intake intakeSubsystem          = new intake();
     private final sorter sorterSubsystem          = new sorter();
     private final ShooterFeeder feederSubsystem   = new ShooterFeeder();
