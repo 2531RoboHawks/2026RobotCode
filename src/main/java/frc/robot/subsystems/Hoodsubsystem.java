@@ -71,6 +71,7 @@ public class Hoodsubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Hood/MotorRotations",   motorRot);
 
         // Press this button on SmartDashboard to snapshot auto-align tuning data
+        
         if (SmartDashboard.getBoolean("Hood/Capture", false)) {
             SmartDashboard.putBoolean("Hood/Capture", false);
             captureAutoAlignData();

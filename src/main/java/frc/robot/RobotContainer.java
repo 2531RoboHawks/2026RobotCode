@@ -25,6 +25,7 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -82,8 +83,9 @@ public class RobotContainer {
     private static final double HOOD_MANUAL_SPEED = 0.3;
 
     public RobotContainer() {
-
         drivetrain = TunerConstants.createDrivetrain();
+        //drivetrain.registerTelemetry(logger::telemeterize);
+        DataLogManager.start();
         debugSubsystem = new Debug(drivetrain);
 
         // ── Named Commands ────────────────────────────────────────────────────
