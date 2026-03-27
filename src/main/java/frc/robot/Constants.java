@@ -150,7 +150,7 @@ public final class Constants {
         //   3.0          | 2.5   (medium)
         //   4.0          | 4.5   (far)
         //   5.0          | 7.0   (very far)
-        // TODO: need to fix limelight position
+        
         // Known good: 2.3m → 0.00, 2.9m → 0.05, 3.5m → 0.22
         public static final double[][] kDistToHood = {
             { 1.0, 0.00 },    // very close — tune on robot
@@ -180,7 +180,7 @@ public final class Constants {
         // Degrees of heading error below which rotation output is zeroed (stops jitter)
         public static final double kRotateDeadband = 1.0;
 
-        // TODO: need to fix limelight position
+      
         // Heading offset in degrees — positive = aim further left, negative = aim further right
         // Compensates for limelight being physically misaligned from robot center
         public static final double kHeadingOffset = 9.0; // ← tune on robot (limelight was moved, shooting right — positive shifts aim left)
