@@ -8,7 +8,7 @@ public final class Constants {
 
     /** Swerve drivetrain tuning -- speeds, PID, and current limits */
     public static final class Swerve {
-        public static final double kMaxSpeedMultiplier = 1.0; // full-speed scale (0–1)
+        public static final double kMaxSpeedMultiplier = 0.8; // full-speed scale (0–1)
         public static final double kMaxAngularRate     = 1.25; // max turn speed in rot/s (0.75–2.0)
         public static final double kDeadbandPercent    = 0.1; // joystick deadzone % (0.05–0.15)
         public static final double kSlowModeMultiplier = 0.30; // slow mode speed scale (0.15–0.35)
