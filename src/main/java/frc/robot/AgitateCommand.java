@@ -2,14 +2,14 @@ package frc.robot;
 //dissabled - not used currently, only used when we have position commands on intake.java
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj.Timer;
-import frc.robot.subsystems.intake;
+import frc.robot.subsystems.Intake;
 
 public class AgitateCommand extends Command {
 
-    private final intake intake;
+    private final Intake intake;
     private final Timer timer = new Timer();
     private boolean goingDown = true;
-    public AgitateCommand(intake intake) {
+    public AgitateCommand(Intake intake) {
         this.intake = intake;
         addRequirements(intake);
     }

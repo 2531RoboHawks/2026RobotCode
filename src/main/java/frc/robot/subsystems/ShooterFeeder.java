@@ -1,12 +1,22 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
 public class ShooterFeeder extends SubsystemBase {
     private final TalonFX feederMotor = new TalonFX(Constants.Feeder.kFeederMotorID);
+
+    public ShooterFeeder() {
+        TalonFXConfiguration config = new TalonFXConfiguration();
+        config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        config.CurrentLimits.StatorCurrentLimit       = 40.0;
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+        feederMotor.getConfigurator().apply(config);
+    }
 
     public void runFeederMotor() {
         feederMotor.set(Constants.Feeder.kForwardSpeed);

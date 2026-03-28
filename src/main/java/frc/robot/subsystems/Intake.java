@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.networktables.GenericEntry;
 import frc.robot.Constants;
 
-public class intake extends SubsystemBase {
+public class Intake extends SubsystemBase {
     private final TalonFX pivotMotor = new TalonFX(Constants.Intake.kPivotMotorID);
     private final TalonFX rollerMotor = new TalonFX(Constants.Intake.kRollerMotorID);
     private final PositionVoltage positionRequest = new PositionVoltage(0);
@@ -19,7 +19,7 @@ public class intake extends SubsystemBase {
     private final GenericEntry pivotPositionEntry;
     private final GenericEntry rollerCurrentEntry;
 
-    public intake() {
+    public Intake() {
         TalonFXConfiguration config = new TalonFXConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 

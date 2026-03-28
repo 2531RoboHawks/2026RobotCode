@@ -30,16 +30,29 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
         m_robotContainer.periodic();
 
-        // Fuse MegaTag1 vision into drivetrain (no gyro heading needed).
-        // Only fuse x,y position — theta std dev is high so gyro isn't overwritten.
-        LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(
+        // Send gyro heading to Limelight so MegaTag2 can use it
+        double gyroYaw = m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees();
+        LimelightHelpers.SetRobotOrientation(
+            Constants.AutoAlign.kLimelightName,
+            gyroYaw, 0, 0, 0, 0, 0
+        );
+
+        // Fuse MegaTag2 vision into drivetrain pose estimator.
+        // MegaTag2 uses the gyro heading we just sent, so its pose is much more stable.
+        LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
             Constants.AutoAlign.kLimelightName
         );
-        if (mt1 != null && mt1.tagCount > 0 && mt1.avgTagDist < 4.0) {
+        if (mt2 != null && mt2.tagCount > 0 && mt2.avgTagDist < 4.0) {
+            // Scale trust based on distance — farther tags = less trust
+            double xyStdDev = 0.3 + (0.3 * mt2.avgTagDist);
+            // Single-tag detections are much noisier
+            if (mt2.tagCount == 1) {
+                xyStdDev *= 2.0;
+            }
             m_robotContainer.drivetrain.addVisionMeasurement(
-                mt1.pose,
-                mt1.timestampSeconds,
-                VecBuilder.fill(0.5, 0.5, 999.0)
+                mt2.pose,
+                mt2.timestampSeconds,
+                VecBuilder.fill(xyStdDev, xyStdDev, 999.0)
             );
         }
     }

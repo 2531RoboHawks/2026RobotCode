@@ -14,11 +14,11 @@ import frc.robot.commands.IntakeDownCommand;
 import frc.robot.commands.IntakeUpCommand;
 import frc.robot.commands.RunIntakeCommand;
 import frc.robot.commands.SpinShooterCommand;
-import frc.robot.subsystems.intake;
-import frc.robot.subsystems.sorter;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Sorter;
 import frc.robot.subsystems.ShooterFeeder;
-import frc.robot.subsystems.shooter;
-import frc.robot.subsystems.Hoodsubsystem;
+import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.subsystems.Debug;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -56,11 +56,11 @@ public class RobotContainer {
 
     private final SendableChooser<Command> autoChooser;
     //private final Telemetry logger=new Telemetry(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond));
-    private final intake intakeSubsystem          = new intake();
-    private final sorter sorterSubsystem          = new sorter();
-    private final ShooterFeeder feederSubsystem   = new ShooterFeeder();
-    private final shooter shooterSubsystem        = new shooter();
-    private final Hoodsubsystem Hoodsubsystem     = new Hoodsubsystem();
+    private final Intake intakeSubsystem            = new Intake();
+    private final Sorter sorterSubsystem            = new Sorter();
+    private final ShooterFeeder feederSubsystem     = new ShooterFeeder();
+    private final Shooter shooterSubsystem          = new Shooter();
+    private final HoodSubsystem hoodSubsystem       = new HoodSubsystem();
     private final CandleSubsystem candleSubsystem = new CandleSubsystem();
 
     private final edu.wpi.first.wpilibj.Timer noBallTimer = new edu.wpi.first.wpilibj.Timer();
@@ -111,8 +111,8 @@ public class RobotContainer {
         // FeedBall        | Runs sorter + feeder                              | sorter, ShooterFeeder                             | 1.0s
         // Shoot           | Spin up shooter, then feed (shooter stays on)     | shooter, sorter, ShooterFeeder                    | 1.5s spin-up + 7.0s feed
         // QuickShoot      | Feed + shoot simultaneously (no spin-up delay)    | shooter, sorter, ShooterFeeder                    | 7.0s
-        // AutoAlign       | Rotate to face target + adjust hood               | drivetrain, Hoodsubsystem                         | 2.5s
-        // AlignAndShoot   | Align + spin up in parallel, then feed            | drivetrain, Hoodsubsystem, shooter, sorter, feeder| 2.0s align + 4.0s feed
+        // AutoAlign       | Rotate to face target + adjust hood               | drivetrain, hoodSubsystem                         | 2.5s
+        // AlignAndShoot   | Align + spin up in parallel, then feed            | drivetrain, hoodSubsystem, shooter, sorter, feeder| 2.0s align + 4.0s feed
         // Wait1s-4s       | Wait 1-4 seconds                                 | none                                              | 1-4s
         //
 
@@ -157,13 +157,13 @@ public class RobotContainer {
         );
 
         NamedCommands.registerCommand("AutoAlign",
-            new AutoAlignCommand(drivetrain, Hoodsubsystem)
+            new AutoAlignCommand(drivetrain, hoodSubsystem)
                 .withTimeout(Constants.Timeouts.kAutoAlignTimeout));
 
         NamedCommands.registerCommand("AlignAndShoot",
             new SequentialCommandGroup(
                 new ParallelDeadlineGroup(
-                    new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                    new AutoAlignCommand(drivetrain, hoodSubsystem)
                         .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
                     new SpinShooterCommand(shooterSubsystem)
                 ),
@@ -177,9 +177,9 @@ public class RobotContainer {
                         sorterSubsystem.stop();
                         feederSubsystem.stop();
                         shooterSubsystem.stopShooter();
-                        Hoodsubsystem.stow();
+                        hoodSubsystem.stow();
                     },
-                    sorterSubsystem, feederSubsystem, shooterSubsystem, Hoodsubsystem
+                    sorterSubsystem, feederSubsystem, shooterSubsystem, hoodSubsystem
                 ).withTimeout(Constants.Timeouts.kShootPipelineFeedTimeout)
             )
         );
@@ -187,7 +187,7 @@ public class RobotContainer {
         // Pop shot — close-range quick shot, hood stays flat (stowed), no alignment
         NamedCommands.registerCommand("PopShot",
             new SequentialCommandGroup(
-                new InstantCommand(() -> Hoodsubsystem.stow(), Hoodsubsystem),
+                new InstantCommand(() -> hoodSubsystem.stow(), hoodSubsystem),
                 new ParallelDeadlineGroup(
                     new FeedBallCommand(sorterSubsystem, feederSubsystem)
                         .withTimeout(Constants.Timeouts.kFeedBallTimeout),
@@ -244,8 +244,8 @@ public class RobotContainer {
 
         configureBindings();
 
-        // Keeps Hoodsubsystem registered with the scheduler so periodic() always runs
-        Hoodsubsystem.setDefaultCommand(new RunCommand(() -> {}, Hoodsubsystem));
+        // Keeps hoodSubsystem registered with the scheduler so periodic() always runs
+        hoodSubsystem.setDefaultCommand(new RunCommand(() -> {}, hoodSubsystem));
     }
 
     // ── Right bumper: full shoot pipeline ─────────────────────────────────────
@@ -269,7 +269,7 @@ public class RobotContainer {
         return new SequentialCommandGroup(
             // Phase 1: auto-align (with hood from distance table) + spin up pop shot velocity
             new ParallelDeadlineGroup(
-                new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                new AutoAlignCommand(drivetrain, hoodSubsystem)
                     .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
                 new RunCommand(() -> {
                     shooterSubsystem.runPopShotMotor();
@@ -292,7 +292,7 @@ public class RobotContainer {
                         sorterSubsystem.stop();
                         feederSubsystem.stop();
                         shooterSubsystem.stopShooter();
-                        Hoodsubsystem.stow();
+                        hoodSubsystem.stow();
                         noBallTimer.stop();
                         feederWasRunning = false;
                         candleSubsystem.setState(CandleState.DEFAULT);
@@ -308,7 +308,7 @@ public class RobotContainer {
         return new SequentialCommandGroup(
             // Phase 1: align + spin up shooter in parallel (long-range if >4m)
             new ParallelDeadlineGroup(
-                new AutoAlignCommand(drivetrain, Hoodsubsystem)
+                new AutoAlignCommand(drivetrain, hoodSubsystem)
                     .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout),
                 new RunCommand(() -> {
                     double dist = AutoAlignCommand.getDistanceToTarget();
@@ -341,7 +341,7 @@ public class RobotContainer {
                         sorterSubsystem.stop();
                         feederSubsystem.stop();
                         shooterSubsystem.stopShooter();
-                        Hoodsubsystem.stow();
+                        hoodSubsystem.stow();
                         noBallTimer.stop();
                         feederWasRunning = false;
                         candleSubsystem.setState(CandleState.DEFAULT);
@@ -355,7 +355,7 @@ public class RobotContainer {
 
     // ── Second controller A-button: align only (no shoot) ────────────────────
     private Command buildAlignOnly() {
-        return new AutoAlignCommand(drivetrain, Hoodsubsystem)
+        return new AutoAlignCommand(drivetrain, hoodSubsystem)
             .withTimeout(Constants.Timeouts.kShootPipelineAlignTimeout);
     }
 
@@ -469,28 +469,28 @@ public class RobotContainer {
         );
         secondController.a().onFalse(
             new InstantCommand(() -> {
-                Hoodsubsystem.stow();
+                hoodSubsystem.stow();
                 candleSubsystem.setState(CandleState.DEFAULT);
-            }, Hoodsubsystem)
+            }, hoodSubsystem)
         );
 
         // DPad up: manually move hood flap up
         secondController.povUp().whileTrue(
             new RunCommand(() ->
-                Hoodsubsystem.setPosition(
-                    Hoodsubsystem.getTargetPosition() + HOOD_MANUAL_SPEED * 0.02
+                hoodSubsystem.setPosition(
+                    hoodSubsystem.getTargetPosition() + HOOD_MANUAL_SPEED * 0.02
                 ),
-                Hoodsubsystem
+                hoodSubsystem
             )
         );
 
         // DPad down: manually move hood flap down
         secondController.povDown().whileTrue(
             new RunCommand(() ->
-                Hoodsubsystem.setPosition(
-                    Hoodsubsystem.getTargetPosition() - HOOD_MANUAL_SPEED * 0.02
+                hoodSubsystem.setPosition(
+                    hoodSubsystem.getTargetPosition() - HOOD_MANUAL_SPEED * 0.02
                 ),
-                Hoodsubsystem
+                hoodSubsystem
             )
         );
 
@@ -528,11 +528,11 @@ public class RobotContainer {
 
         // Right trigger: capture auto-align tuning data snapshot
         secondController.rightTrigger().onTrue(
-            new InstantCommand(() -> Hoodsubsystem.captureAutoAlignData())
+            new InstantCommand(() -> hoodSubsystem.captureAutoAlignData())
         );
 
         // Left bumper: hood homing (pits only — press once, runs automatically)
-        secondController.leftBumper().onTrue(Hoodsubsystem.homeCommand());
+        secondController.leftBumper().onTrue(hoodSubsystem.homeCommand());
     }
 
     // ── Hub shift tracking ─────────────────────────────────────────────────
@@ -603,7 +603,7 @@ public class RobotContainer {
 
         readyToShoot = shooterSubsystem.isAtSpeed()
             && limelightHasTarget
-            && Hoodsubsystem.isAtGoal();
+            && hoodSubsystem.isAtGoal();
         readyToShootEntry.setBoolean(readyToShoot);
 
         // Hub shift info

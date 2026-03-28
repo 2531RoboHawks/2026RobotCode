@@ -1,7 +1,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
-import frc.robot.subsystems.sorter;
+import frc.robot.subsystems.Sorter;
 import frc.robot.subsystems.ShooterFeeder;
 
 /**
@@ -9,7 +9,7 @@ import frc.robot.subsystems.ShooterFeeder;
  * Use: "FeedBall" in PathPlanner (add a timeout in the GUI, e.g. 1s).
  */
 public class FeedBallCommand extends StartEndCommand {
-    public FeedBallCommand(sorter sorterSubsystem, ShooterFeeder feederSubsystem) {
+    public FeedBallCommand(Sorter sorterSubsystem, ShooterFeeder feederSubsystem) {
         super(
             () -> {
                 sorterSubsystem.runSorterMotor();

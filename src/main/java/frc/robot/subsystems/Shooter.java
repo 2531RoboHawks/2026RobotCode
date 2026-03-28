@@ -13,16 +13,18 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
-public class shooter extends SubsystemBase {
+public class Shooter extends SubsystemBase {
     private final TalonFX shooterMotor = new TalonFX(Constants.Shooter.kShooterMotorID);
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
 
     private static final double AT_SPEED_TOLERANCE = 2.0; // RPS
 
+    private double targetVelocity = 0.0;
+
     private final GenericEntry velocityEntry;
     private final GenericEntry atSpeedEntry;
 
-    public shooter() {
+    public Shooter() {
         TalonFXConfiguration config = new TalonFXConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         config.OpenLoopRamps.DutyCycleOpenLoopRampPeriod = Constants.Shooter.kOpenLoopRampPeriod;
@@ -31,6 +33,9 @@ public class shooter extends SubsystemBase {
         Slot0Configs slot0 = config.Slot0;
         slot0.kP = Constants.Shooter.kP;
         slot0.kV = Constants.Shooter.kV;
+
+        config.CurrentLimits.StatorCurrentLimit       = 60.0;
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
 
         shooterMotor.getConfigurator().apply(config);
 
@@ -51,7 +56,7 @@ public class shooter extends SubsystemBase {
     }
 
     public boolean isAtSpeed() {
-        return getVelocity() >= (Constants.Shooter.kShooterVelocity - AT_SPEED_TOLERANCE);
+        return targetVelocity > 0 && getVelocity() >= (targetVelocity - AT_SPEED_TOLERANCE);
     }
 
     // Returns a command that runs the shooter while active and stops it when ended
@@ -64,21 +69,25 @@ public class shooter extends SubsystemBase {
 
     // Spins the shooter wheel using closed-loop velocity control to launch game pieces
     public void runShooterMotor() {
-        shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kShooterVelocity));
+        targetVelocity = Constants.Shooter.kShooterVelocity;
+        shooterMotor.setControl(velocityRequest.withVelocity(targetVelocity));
     }
 
-    // Higher velocity for close-range pop shots
+    // Pop shot velocity for close-range shots
     public void runPopShotMotor() {
-        shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kPopShotVelocity));
+        targetVelocity = Constants.Shooter.kPopShotVelocity;
+        shooterMotor.setControl(velocityRequest.withVelocity(targetVelocity));
     }
 
     // Long-range velocity for shots >4m
     public void runLongRangeMotor() {
-        shooterMotor.setControl(velocityRequest.withVelocity(Constants.Shooter.kLongRangeVelocity));
+        targetVelocity = Constants.Shooter.kLongRangeVelocity;
+        shooterMotor.setControl(velocityRequest.withVelocity(targetVelocity));
     }
 
     // Stops the shooter motor
     public void stopShooter() {
+        targetVelocity = 0.0;
         shooterMotor.set(0);
     }
 

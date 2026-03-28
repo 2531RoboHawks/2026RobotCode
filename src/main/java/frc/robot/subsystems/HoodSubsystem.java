@@ -7,21 +7,23 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
+import frc.robot.commands.AutoAlignCommand;
 
-public class Hoodsubsystem extends SubsystemBase {
+public class HoodSubsystem extends SubsystemBase {
 
     private final TalonFX            hoodMotor;
     private final MotionMagicVoltage motionMagic = new MotionMagicVoltage(0).withSlot(0);
 
     private double targetRotations = 0.0;
 
-    public Hoodsubsystem() {
+    public HoodSubsystem() {
         hoodMotor = new TalonFX(Constants.Hood.kHoodMotorID, Constants.Hood.kCANbus);
 
         TalonFXConfiguration cfg = new TalonFXConfiguration();
@@ -118,11 +120,6 @@ public class Hoodsubsystem extends SubsystemBase {
 
     // ── Auto-Align Data Capture ─────────────────────────────────────────────
 
-    private static final Translation2d BLUE_HUB =
-        new Translation2d(Constants.AutoAlign.kBlueTargetX, Constants.AutoAlign.kBlueTargetY);
-    private static final Translation2d RED_HUB =
-        new Translation2d(Constants.AutoAlign.kRedTargetX, Constants.AutoAlign.kRedTargetY);
-
     /**
      * Snapshots all relevant auto-align tuning data to the console and SmartDashboard.
      * Call from SmartDashboard capture button or operator right trigger.
@@ -131,7 +128,7 @@ public class Hoodsubsystem extends SubsystemBase {
         double hoodCurrent = getCurrentRotations();
         double hoodMotorRot = hoodCurrent * Constants.Hood.kGearRatio;
 
-        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue(
+        LimelightHelpers.PoseEstimate pose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
             Constants.AutoAlign.kLimelightName
         );
 
@@ -144,20 +141,17 @@ public class Hoodsubsystem extends SubsystemBase {
             Translation2d robotPos = pose.pose.getTranslation();
             double headingDeg = pose.pose.getRotation().getDegrees();
 
-            Translation2d target = robotPos.getDistance(RED_HUB) < robotPos.getDistance(BLUE_HUB)
-                ? RED_HUB : BLUE_HUB;
-            String alliance = target.equals(RED_HUB) ? "RED" : "BLUE";
+            Translation2d target = AutoAlignCommand.getTargetHub();
 
             double dx = target.getX() - robotPos.getX();
             double dy = target.getY() - robotPos.getY();
             double targetAngleDeg = Math.toDegrees(Math.atan2(dy, dx));
-            double error = targetAngleDeg - headingDeg + Constants.AutoAlign.kHeadingOffset;
-            while (error > 180)  error -= 360;
-            while (error <= -180) error += 360;
+            double error = MathUtil.inputModulus(
+                targetAngleDeg - headingDeg + Constants.AutoAlign.kHeadingOffset, -180, 180);
             double distance = Math.sqrt(dx * dx + dy * dy);
 
             sb.append(String.format("Robot: X=%.3f Y=%.3f Heading=%.1f°\n", robotPos.getX(), robotPos.getY(), headingDeg));
-            sb.append(String.format("Target: X=%.3f Y=%.3f (%s)\n", target.getX(), target.getY(), alliance));
+            sb.append(String.format("Target: X=%.3f Y=%.3f\n", target.getX(), target.getY()));
             sb.append(String.format("TargetAngle=%.1f° HeadingError=%.1f°\n", targetAngleDeg, error));
             sb.append(String.format("Distance=%.3fm\n", distance));
             sb.append(String.format("TagCount=%d\n", pose.tagCount));
