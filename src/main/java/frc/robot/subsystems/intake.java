@@ -65,6 +65,12 @@ public class intake extends SubsystemBase {
         pivotMotor.setControl(positionRequest.withPosition(currentPosition));
     }
 
+    // Locks the pivot arm pushed slightly downward (positive offset = down)
+    public void lockPositionWithNudge(double offsetRotations) {
+        double currentPosition = pivotMotor.getPosition().getValueAsDouble();
+        pivotMotor.setControl(positionRequest.withPosition(currentPosition + offsetRotations));
+    }
+
     // Releases position hold, returning the pivot motor to open-loop (coast/free)
     public void unlockPosition() {
         pivotMotor.set(0);

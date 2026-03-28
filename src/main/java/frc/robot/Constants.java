@@ -49,6 +49,7 @@ public final class Constants {
         public static final double kRollerSpeed    = -0.8; // roller intake speed (-0.5 to -1.0)
 
         public static final double kPivotHoldCurrentLimit = 40.0; // max amps for pivot motor (20–60)
+        public static final double kRollerDownNudge = 0.15; // rotations to push arm down while rollers run (tune 0.05–0.3)
 
     }
 

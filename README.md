@@ -27,5 +27,6 @@
 | D-Pad Up | Hood flap up (manual) |
 | D-Pad Down | Hood flap down (manual) |
 |Right bumper|Zero hood|
+|Right Trigger|capture shooting data|
 
 

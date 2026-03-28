@@ -23,10 +23,17 @@ import frc.robot.subsystems.Debug;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.CvSource;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotController;
+
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -79,6 +86,11 @@ public class RobotContainer {
     private final GenericEntry slowModeEntry;
     private final GenericEntry headingEntry;
     private final GenericEntry readyToShootEntry;
+    private final GenericEntry hubActiveEntry;
+    private final GenericEntry timeToShiftEntry;
+    private final GenericEntry currentShiftEntry;
+
+    private volatile boolean readyToShoot = false;
 
     private static final double HOOD_MANUAL_SPEED = 0.3;
 
@@ -198,6 +210,37 @@ public class RobotContainer {
         slowModeEntry       = tab.add("Slow Mode Active", false).getEntry();
         headingEntry        = tab.add("Robot Heading (deg)", 0).getEntry();
         readyToShootEntry   = tab.add("Ready to Shoot", false).getEntry();
+        hubActiveEntry      = tab.add("Hub Active", false).getEntry();
+        timeToShiftEntry    = tab.add("Time to Shift", 0.0).getEntry();
+        currentShiftEntry   = tab.add("Current Shift", "---").getEntry();
+
+        // Vision thread for ready-to-shoot image indicator
+        Thread readyImageThread = new Thread(() -> {
+            try {
+                System.loadLibrary(org.opencv.core.Core.NATIVE_LIBRARY_NAME);
+                String deployDir = Filesystem.getDeployDirectory().getAbsolutePath();
+                System.out.println("[ReadyImage] Loading from: " + deployDir);
+
+                Mat trueImage  = Imgcodecs.imread(deployDir + "/true.jpg");
+                Mat falseImage = Imgcodecs.imread(deployDir + "/false.jpg");
+                System.out.println("[ReadyImage] true.jpg: " + (trueImage.empty() ? "MISSING" : trueImage.width() + "x" + trueImage.height()));
+                System.out.println("[ReadyImage] false.jpg: " + (falseImage.empty() ? "MISSING" : falseImage.width() + "x" + falseImage.height()));
+
+                int width  = falseImage.empty() ? 320 : falseImage.width();
+                int height = falseImage.empty() ? 240 : falseImage.height();
+                CvSource output = CameraServer.putVideo("Ready to Shoot", width, height);
+
+                while (!Thread.interrupted()) {
+                    output.putFrame(readyToShoot ? trueImage : falseImage);
+                    try { Thread.sleep(100); } catch (InterruptedException e) { break; }
+                }
+            } catch (Exception | UnsatisfiedLinkError e) {
+                System.err.println("[ReadyImage] Thread crashed: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+        readyImageThread.setDaemon(true);
+        readyImageThread.start();
 
         configureBindings();
 
@@ -342,7 +385,7 @@ public class RobotContainer {
         driverController.leftTrigger().whileTrue(
             new RunCommand(() -> {
                 intakeSubsystem.runRollerMotor();
-                intakeSubsystem.lockPosition();
+                intakeSubsystem.lockPositionWithNudge(Constants.Intake.kRollerDownNudge);
             }, intakeSubsystem)
         );
         driverController.leftTrigger().onFalse(
@@ -492,6 +535,63 @@ public class RobotContainer {
         secondController.leftBumper().onTrue(Hoodsubsystem.homeCommand());
     }
 
+    // ── Hub shift tracking ─────────────────────────────────────────────────
+    // Shift boundaries (matchTime counts DOWN): 130, 105, 80, 55, 30
+    private static final double[] SHIFT_BOUNDARIES = {130, 105, 80, 55, 30};
+    private static final String[] SHIFT_NAMES = {"Transition", "Shift 1", "Shift 2", "Shift 3", "Shift 4", "Endgame"};
+
+    private boolean isHubActive() {
+        var alliance = DriverStation.getAlliance();
+        if (alliance.isEmpty()) return false;
+        if (DriverStation.isAutonomousEnabled()) return true;
+        if (!DriverStation.isTeleopEnabled()) return false;
+
+        double matchTime = DriverStation.getMatchTime();
+        String gameData = DriverStation.getGameSpecificMessage();
+        if (gameData.isEmpty()) return true;
+
+        boolean redInactiveFirst;
+        switch (gameData.charAt(0)) {
+            case 'R' -> redInactiveFirst = true;
+            case 'B' -> redInactiveFirst = false;
+            default  -> { return true; }
+        }
+
+        boolean shift1Active = switch (alliance.get()) {
+            case Red  -> !redInactiveFirst;
+            case Blue -> redInactiveFirst;
+        };
+
+        if (matchTime > 130) return true;             // Transition
+        else if (matchTime > 105) return shift1Active; // Shift 1
+        else if (matchTime > 80) return !shift1Active; // Shift 2
+        else if (matchTime > 55) return shift1Active;  // Shift 3
+        else if (matchTime > 30) return !shift1Active; // Shift 4
+        else return true;                              // Endgame
+    }
+
+    private String getCurrentShiftName() {
+        if (!DriverStation.isTeleopEnabled()) return "---";
+        double matchTime = DriverStation.getMatchTime();
+        if (matchTime > 130) return SHIFT_NAMES[0];
+        else if (matchTime > 105) return SHIFT_NAMES[1];
+        else if (matchTime > 80) return SHIFT_NAMES[2];
+        else if (matchTime > 55) return SHIFT_NAMES[3];
+        else if (matchTime > 30) return SHIFT_NAMES[4];
+        else return SHIFT_NAMES[5];
+    }
+
+    private double getTimeToNextShift() {
+        if (!DriverStation.isTeleopEnabled()) return 0;
+        double matchTime = DriverStation.getMatchTime();
+        for (double boundary : SHIFT_BOUNDARIES) {
+            if (matchTime > boundary) {
+                return matchTime - boundary;
+            }
+        }
+        return matchTime; // In endgame, counts down to 0
+    }
+
     public void periodic() {
         slowModeEntry.setBoolean(driverController.leftTrigger().getAsBoolean());
         headingEntry.setDouble(drivetrain.getState().Pose.getRotation().getDegrees());
@@ -501,11 +601,15 @@ public class RobotContainer {
             .getEntry("tv")
             .getDouble(0) == 1.0;
 
-        readyToShootEntry.setBoolean(
-            shooterSubsystem.isAtSpeed()
+        readyToShoot = shooterSubsystem.isAtSpeed()
             && limelightHasTarget
-            && Hoodsubsystem.isAtGoal()
-        );
+            && Hoodsubsystem.isAtGoal();
+        readyToShootEntry.setBoolean(readyToShoot);
+
+        // Hub shift info
+        hubActiveEntry.setBoolean(isHubActive());
+        timeToShiftEntry.setDouble(getTimeToNextShift());
+        currentShiftEntry.setString(getCurrentShiftName());
 
         // No-ball detection: feeder running but no load for 0.5s → blink red
         if (feederWasRunning) {
