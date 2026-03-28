@@ -184,7 +184,7 @@ public final class Constants {
       
         // Heading offset in degrees — positive = aim further left, negative = aim further right
         // Compensates for limelight being physically misaligned from robot center
-        public static final double kHeadingOffset = 9.0; // ← tune on robot (limelight was moved, shooting right — positive shifts aim left)
+        public static final double kHeadingOffset = 7.0; // ← tune on robot (was 9.0, shooting left — reduced to shift aim right)
 
         // Degrees of heading error that counts as "aligned"
         // Looser = faster. Tighter = more accurate.
