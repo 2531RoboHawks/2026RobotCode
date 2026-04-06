@@ -5,6 +5,7 @@
 package frc.robot;
 
 import com.ctre.phoenix6.HootAutoReplay;
+import com.ctre.phoenix6.SignalLogger;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -22,6 +23,7 @@ public class Robot extends TimedRobot {
 
     public Robot() {
         m_robotContainer = new RobotContainer();
+        SignalLogger.start();
     }
 
     @Override

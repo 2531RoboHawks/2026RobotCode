@@ -16,6 +16,8 @@ public class ShooterFeeder extends SubsystemBase {
         config.CurrentLimits.StatorCurrentLimit       = 40.0;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         feederMotor.getConfigurator().apply(config);
+        feederMotor.getPosition().setUpdateFrequency(10);
+        feederMotor.getFault_Hardware().setUpdateFrequency(4);
     }
 
     public void runFeederMotor() {

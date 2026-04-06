@@ -32,6 +32,15 @@ public class Intake extends SubsystemBase {
         config.CurrentLimits.StatorCurrentLimitEnable = true;
 
         pivotMotor.getConfigurator().apply(config);
+        pivotMotor.getFault_Hardware().setUpdateFrequency(4);
+
+        TalonFXConfiguration rollerConfig = new TalonFXConfiguration();
+        rollerConfig.CurrentLimits.StatorCurrentLimit       = Constants.Intake.kRollerCurrentLimit;
+        rollerConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        rollerMotor.getConfigurator().apply(rollerConfig);
+        rollerMotor.getPosition().setUpdateFrequency(10);
+        rollerMotor.getVelocity().setUpdateFrequency(10);
+        rollerMotor.getFault_Hardware().setUpdateFrequency(4);
 
         ShuffleboardTab tab = Shuffleboard.getTab("Important");
         pivotPositionEntry = tab.add("Pivot Position", 0).getEntry();

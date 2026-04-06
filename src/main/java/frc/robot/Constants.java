@@ -50,6 +50,7 @@ public final class Constants {
 
         public static final double kPivotHoldCurrentLimit = 40.0; // max amps for pivot motor (20–60)
         public static final double kRollerDownNudge = 0.15; // rotations to push arm down while rollers run (tune 0.05–0.3)
+        public static final double kRollerCurrentLimit = 40.0; // max amps for roller motor (20–60)
 
     }
 
@@ -83,6 +84,8 @@ public final class Constants {
 
     /** Hood subsystem -- Falcon 500 with two 5:1 reductions (25:1 total) */
     public static final class Hood {
+
+        public static final double kCurrentLimit = 40.0; // max amps for hood motor (20–60)
 
         // ← Change this to your hood motor's CAN ID
         public static final int    kHoodMotorID  = 33;

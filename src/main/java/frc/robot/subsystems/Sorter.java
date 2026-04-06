@@ -15,6 +15,9 @@ public class Sorter extends SubsystemBase {
         config.CurrentLimits.StatorCurrentLimit       = 40.0;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         sorterMotor.getConfigurator().apply(config);
+        sorterMotor.getPosition().setUpdateFrequency(10);
+        sorterMotor.getVelocity().setUpdateFrequency(10);
+        sorterMotor.getFault_Hardware().setUpdateFrequency(4);
     }
 
     // Runs the sorter motor to move game pieces toward the feeder/shooter

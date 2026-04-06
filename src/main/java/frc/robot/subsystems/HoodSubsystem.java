@@ -51,9 +51,14 @@ public class HoodSubsystem extends SubsystemBase {
         cfg.SoftwareLimitSwitch.ReverseSoftLimitEnable    = true;
         cfg.SoftwareLimitSwitch.ReverseSoftLimitThreshold = Constants.Hood.kMinRotations;
 
+        cfg.CurrentLimits.StatorCurrentLimit       = Constants.Hood.kCurrentLimit;
+        cfg.CurrentLimits.StatorCurrentLimitEnable = true;
+
         cfg.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
         hoodMotor.getConfigurator().apply(cfg);
+        hoodMotor.getVelocity().setUpdateFrequency(10);
+        hoodMotor.getFault_Hardware().setUpdateFrequency(4);
 
         // Zero encoder at startup — robot must start with hood at minimum position
         hoodMotor.setPosition(0.0);

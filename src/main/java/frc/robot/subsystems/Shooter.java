@@ -38,6 +38,8 @@ public class Shooter extends SubsystemBase {
         config.CurrentLimits.StatorCurrentLimitEnable = true;
 
         shooterMotor.getConfigurator().apply(config);
+        shooterMotor.getPosition().setUpdateFrequency(10);
+        shooterMotor.getFault_Hardware().setUpdateFrequency(4);
 
         ShuffleboardTab tab = Shuffleboard.getTab("Important");
         velocityEntry = tab.add("Shooter Velocity (RPS)", 0).getEntry();
